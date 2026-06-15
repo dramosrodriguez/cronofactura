@@ -46,7 +46,7 @@ class UpdateDialog(ctk.CTkToplevel):
         new_v = version_info.get("new_version", "0.0.0")
         
         info_text = (
-            f"Se ha detectado la versión v{new_v} en GitHub. Tu versión actual es v{current_v}.\n"
+            f"Se ha detectado la versión {new_v} en GitHub. Tu versión actual es v{current_v}.\n"
             f"Para más información sobre la actualización, dirígete al enlace de la última versión (latest release) del repositorio:\n"
         )
         
