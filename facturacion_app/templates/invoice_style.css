@@ -1,0 +1,177 @@
+@page {
+    size: a4 portrait;
+    margin-top: 1.5cm;
+    margin-bottom: 2cm;
+    margin-left: 2cm;
+    margin-right: 2cm;
+    @frame footer {
+        -pdf-frame-content: footer_content;
+        bottom: 1cm;
+        left: 2cm;
+        right: 2cm;
+        height: 1cm;
+    }
+}
+
+body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: #2D3748;
+    font-size: 10pt;
+    line-height: 1.5;
+}
+
+/* Encabezados y Colores */
+h1 {
+    font-size: 24pt;
+    color: #1A365D;
+    margin: 0;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.invoice-header-table {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.invoice-header-table td {
+    vertical-align: top;
+}
+
+/* Tarjeta de información de la factura */
+.invoice-details-box {
+    background-color: #F7FAFC;
+    border: 1px solid #E2E8F0;
+    padding: 12px;
+    border-radius: 6px;
+    width: 100%;
+}
+
+.invoice-details-box td {
+    padding: 3px 0;
+}
+
+.details-label {
+    font-weight: bold;
+    color: #4A5568;
+    width: 120px;
+}
+
+.details-value {
+    color: #2D3748;
+}
+
+/* Datos Emisor y Receptor */
+.parties-table {
+    width: 100%;
+    margin-bottom: 30px;
+}
+
+.parties-table td {
+    width: 50%;
+    vertical-align: top;
+}
+
+.party-title {
+    font-size: 11pt;
+    font-weight: bold;
+    color: #2B6CB0;
+    border-bottom: 2px solid #E2E8F0;
+    padding-bottom: 4px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.party-info {
+    font-size: 9.5pt;
+    line-height: 1.4;
+    color: #4A5568;
+}
+
+/* Tabla de Conceptos (Items) */
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 30px;
+}
+
+.items-table th {
+    background-color: #2B6CB0;
+    color: #FFFFFF;
+    font-weight: bold;
+    text-align: left;
+    padding: 8px 10px;
+    font-size: 9.5pt;
+    border: 1px solid #2B6CB0;
+}
+
+.items-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #E2E8F0;
+    font-size: 9pt;
+    color: #2D3748;
+}
+
+.items-table tr.even-row td {
+    background-color: #F8FAFC;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Resumen de totales (Totales e Impuestos) */
+.totals-container-table {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.totals-container-table td {
+    vertical-align: top;
+}
+
+.totals-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.totals-table td {
+    padding: 6px 10px;
+    font-size: 10pt;
+}
+
+.totals-table td.total-label {
+    font-weight: bold;
+    color: #4A5568;
+    text-align: right;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.totals-table td.total-value {
+    text-align: right;
+    color: #2D3748;
+    border-bottom: 1px solid #E2E8F0;
+    width: 120px;
+}
+
+.totals-table tr.grand-total td {
+    font-size: 12pt;
+    font-weight: bold;
+    color: #1A365D;
+    background-color: #EBF8FF;
+    border-top: 2px solid #2B6CB0;
+    border-bottom: 2px solid #2B6CB0;
+}
+
+/* Footer de página */
+#footer_content {
+    font-size: 8pt;
+    color: #A0AEC0;
+    text-align: center;
+    border-top: 1px solid #E2E8F0;
+    padding-top: 5px;
+}

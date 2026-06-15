@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Factura {{ invoice.invoice_number }}</title>
+    <style>
+        {{ style_content | safe }}
+    </style>
+</head>
+<body>
+
+    <!-- CABECERA -->
+    <table class="invoice-header-table">
+        <tr>
+            <td>
+                <h1>FACTURA</h1>
+                <p style="color: #4A5568; margin-top: 5px;">Documento Comercial</p>
+            </td>
+            <td align="right" style="width: 250px;">
+                <div class="invoice-details-box">
+                    <table>
+                        <tr>
+                            <td class="details-label">Factura Nº:</td>
+                            <td class="details-value"><strong>{{ invoice.invoice_number }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="details-label">Fecha Emisión:</td>
+                            <td class="details-value">{{ invoice.issue_date }}</td>
+                        </tr>
+                        <tr>
+                            <td class="details-label">Fecha Vencimiento:</td>
+                            <td class="details-value">{{ invoice.due_date }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- PARTES EMISOR / RECEPTOR -->
+    <table class="parties-table">
+        <tr>
+            <td style="padding-right: 15px;">
+                <div class="party-title">Emisor (Autónomo)</div>
+                <div class="party-info">
+                    <strong>{{ emisor.nombre }}</strong><br>
+                    NIF/DNI: {{ emisor.nif }}<br>
+                    Dirección: {{ emisor.direccion }}<br>
+                    Email: {{ emisor.email }}
+                </div>
+            </td>
+            <td style="padding-left: 15px;">
+                <div class="party-title">Cliente (Receptor)</div>
+                <div class="party-info">
+                    <strong>{{ client.name }}</strong><br>
+                    NIF/DNI: {{ client.nif }}<br>
+                    Dirección: {{ client.address }}<br>
+                    Email: {{ client.email }}
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- TABLA DE CONCEPTOS -->
+    {% if invoice.billing_type == 'proyecto' %}
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th>Concepto / Tareas Realizadas</th>
+                <th style="width: 120px;" class="text-right">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="even-row">
+                <td style="padding: 12px 10px;">
+                    <strong style="font-size: 10.5pt; color: #1A365D;">{{ invoice.project_concept if invoice.project_concept else 'Servicios prestados por proyecto' }}</strong>
+                    {% if logs %}
+                    <div style="margin-top: 8px; font-size: 8.5pt; color: #4A5568; line-height: 1.4;">
+                        <span style="font-weight: bold; color: #2B6CB0;">Desglose de trabajos incluidos:</span>
+                        <div style="margin-top: 4px; padding-left: 10px;">
+                            {% for log in logs %}
+                            <div style="margin-bottom: 3px;">&bull; {{ log.date }}: {{ log.description }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </td>
+                <td class="text-right" style="vertical-align: top; font-weight: bold; font-size: 11pt; padding: 12px 10px;">
+                    {{ "%.2f"|format(invoice.subtotal) }} €
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    {% else %}
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th style="width: 80px;">Fecha</th>
+                <th>Descripción del Trabajo</th>
+                <th style="width: 60px;" class="text-center">Horas</th>
+                <th style="width: 80px;" class="text-right">Tarifa/h</th>
+                <th style="width: 90px;" class="text-right">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr class="{{ 'even-row' if loop.index0 % 2 == 0 else '' }}">
+                <td class="text-center">{{ log.date }}</td>
+                <td>{{ log.description }}</td>
+                <td class="text-center">{{ "%.2f"|format(log.hours) }} h</td>
+                <td class="text-right">{{ "%.2f"|format(client.hourly_rate) }} €</td>
+                <td class="text-right">{{ "%.2f"|format(log.hours * client.hourly_rate) }} €</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- TOTALES -->
+    <table class="totals-container-table">
+        <tr>
+            <td style="width: 50%;">
+                <!-- Espacio para notas adicionales, términos de pago o datos bancarios -->
+                <div style="font-size: 8.5pt; color: #718096; margin-top: 10px;">
+                    <strong>Condiciones de Pago:</strong><br>
+                    El pago se realizará mediante transferencia bancaria en un<br>
+                    plazo máximo de 30 días a partir de la fecha de emisión en la cuenta cuenta corriente {{ emisor.cuenta_bancaria }}.
+                </div>
+            </td>
+            <td style="width: 50%;">
+                <table class="totals-table">
+                    <tr>
+                        <td class="total-label">Subtotal:</td>
+                        <td class="total-value">{{ "%.2f"|format(invoice.subtotal) }} €</td>
+                    </tr>
+                    <tr>
+                        <td class="total-label">I.V.A. ({{ "%.1f"|format(invoice.vat_rate) }}%):</td>
+                        <td class="total-value">(+) {{ "%.2f"|format(invoice.vat_amount) }} €</td>
+                    </tr>
+                    <tr>
+                        <td class="total-label">I.R.P.F. ({{ "%.1f"|format(invoice.irpf_rate) }}%):</td>
+                        <td class="total-value">(-) {{ "%.2f"|format(invoice.irpf_amount) }} €</td>
+                    </tr>
+                    <tr class="grand-total">
+                        <td class="total-label" style="color: #1A365D;">Total Neto:</td>
+                        <td class="total-value" style="color: #1A365D;"><strong>{{ "%.2f"|format(invoice.total) }} €</strong></td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- FOOTER DE PÁGINA (ESTÁTICO DE XHTML2PDF) -->
+    <div id="footer_content">
+        Factura generada automáticamente por el Sistema Local de Facturación y Gestión de Tiempos.<br>
+        Página <pdf:pagenumber/> de <pdf:pagecount/>
+    </div>
+
+</body>
+</html>

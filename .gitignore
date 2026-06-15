@@ -1,0 +1,49 @@
+# === Entornos Virtuales y Dependencias ===
+.venv/
+venv/
+ENV/
+env/
+dist/
+build/
+*.egg-info/
+
+# === Cachés y temporales de Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# === Base de Datos y Temporales ===
+# Se ignora la base de datos local SQLite y archivos de WAL/Journal
+facturacion_app/facturacion.db
+facturacion_app/facturacion.db-journal
+facturacion_app/facturacion.db-shm
+facturacion_app/facturacion.db-wal
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# === Configuración Local ===
+# Se ignora la configuración personal/datos del emisor real
+facturacion_app/config/settings.json
+facturacion_app/config/settings.json.tmp
+
+# === Facturas Emitidas y Exportaciones ===
+# Se ignoran todas las facturas PDF y reportes generados
+facturas_emitidas/*
+# Pero mantenemos la carpeta en git usando el archivo .gitkeep
+!facturas_emitidas/.gitkeep
+
+# === IDEs, Editores y Sistema ===
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+.DS_Store
+Thumbs.db

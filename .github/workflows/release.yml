@@ -1,0 +1,54 @@
+name: Publicar Release Automático
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'pyproject.toml'
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Obtener versión de pyproject.toml
+        id: get_version
+        run: |
+          # Extraer el valor del campo 'version' de pyproject.toml
+          VERSION=$(grep -E '^version\s*=\s*' pyproject.toml | head -1 | sed -E 's/version\s*=\s*"(.*)"/\1/')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Verificar si el tag/release ya existe
+        id: check_release
+        run: |
+          # Usar GitHub CLI para comprobar si la etiqueta ya existe
+          if gh release view "v${{ env.VERSION }}" >/dev/null 2>&1; then
+            echo "RELEASE_EXISTS=true" >> $GITHUB_ENV
+            echo "El release v${{ env.VERSION }} ya existe. Omitiendo creación."
+          else
+            echo "RELEASE_EXISTS=false" >> $GITHUB_ENV
+            echo "El release v${{ env.VERSION }} no existe. Procediendo a crear."
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+
+      - name: Crear Release de GitHub
+        if: env.RELEASE_EXISTS == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: Versión v${{ env.VERSION }}
+          body: Versión v${{ env.VERSION }}.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
