@@ -1,4 +1,5 @@
 import customtkinter as ctk
+import webbrowser
 
 class UpdateDialog(ctk.CTkToplevel):
     """Ventana modal premium para avisar al usuario de que hay una nueva versión disponible,
@@ -7,7 +8,7 @@ class UpdateDialog(ctk.CTkToplevel):
     def __init__(self, parent, version_info, on_confirm):
         super().__init__(parent)
         self.title("Actualización de Software")
-        self.geometry("520x460")
+        self.geometry("520x490")
         self.resizable(False, False)
         
         self.on_confirm = on_confirm
@@ -18,7 +19,7 @@ class UpdateDialog(ctk.CTkToplevel):
             self.transient(parent)
             parent.update_idletasks()
             x = parent.winfo_rootx() + (parent.winfo_width() // 2) - 260
-            y = parent.winfo_rooty() + (parent.winfo_height() // 2) - 230
+            y = parent.winfo_rooty() + (parent.winfo_height() // 2) - 245
             self.geometry(f"+{x}+{y}")
             
         self.grab_set()
@@ -29,7 +30,7 @@ class UpdateDialog(ctk.CTkToplevel):
         
         # Configurar la cuadricula
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(3, weight=1)
         
         # Título / Cabecera
         self.header_label = ctk.CTkLabel(
@@ -43,7 +44,11 @@ class UpdateDialog(ctk.CTkToplevel):
         # Información comparativa de versiones
         current_v = version_info.get("current_version", "0.0.0")
         new_v = version_info.get("new_version", "0.0.0")
-        info_text = f"Se ha detectado la versión v{new_v} en GitHub. Tu versión actual es v{current_v}.\n¿Deseas descargar e instalar esta actualización ahora?"
+        
+        info_text = (
+            f"Se ha detectado la versión v{new_v} en GitHub. Tu versión actual es v{current_v}.\n"
+            f"Para más información sobre la actualización, dirígete al enlace de la última versión (latest release) del repositorio:\n"
+        )
         
         self.info_label = ctk.CTkLabel(
             self,
@@ -52,11 +57,22 @@ class UpdateDialog(ctk.CTkToplevel):
             wraplength=470,
             justify="left"
         )
-        self.info_label.grid(row=1, column=0, padx=25, pady=(0, 15), sticky="w")
+        self.info_label.grid(row=1, column=0, padx=25, pady=(0, 5), sticky="w")
+
+        # Enlace clickable
+        self.link_label = ctk.CTkLabel(
+            self,
+            text="https://github.com/dramosrodriguez/cronofactura/releases/latest",
+            font=ctk.CTkFont(size=13, underline=True),
+            text_color=("#2B6CB0", "#90CDF4"),
+            cursor="hand2"
+        )
+        self.link_label.grid(row=2, column=0, padx=25, pady=(0, 15), sticky="w")
+        self.link_label.bind("<Button-1>", lambda e: webbrowser.open_new_tab("https://github.com/dramosrodriguez/cronofactura/releases/latest"))
         
         # Contenedor de notas de versión
         self.notes_frame = ctk.CTkFrame(self)
-        self.notes_frame.grid(row=2, column=0, padx=25, pady=(0, 20), sticky="nsew")
+        self.notes_frame.grid(row=3, column=0, padx=25, pady=(0, 20), sticky="nsew")
         self.notes_frame.grid_columnconfigure(0, weight=1)
         self.notes_frame.grid_rowconfigure(1, weight=1)
         
@@ -79,7 +95,7 @@ class UpdateDialog(ctk.CTkToplevel):
         
         # Botonera
         self.btn_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.btn_frame.grid(row=3, column=0, padx=25, pady=(0, 25), sticky="ew")
+        self.btn_frame.grid(row=4, column=0, padx=25, pady=(0, 25), sticky="ew")
         self.btn_frame.grid_columnconfigure((0, 1), weight=1)
         
         self.btn_cancel = ctk.CTkButton(
