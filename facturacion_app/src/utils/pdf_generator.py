@@ -75,6 +75,17 @@ def ejecutar_generacion_pdf(invoice: Invoice, client: Client, logs: list[TimeLog
     else:
         output_dir = os.path.join(os.path.dirname(BASE_DIR), "facturas_emitidas")
 
+    # Si hay cliente y tiene un nombre, se organiza en una subcarpeta con el nombre del cliente
+    if client and getattr(client, "name", None):
+        client_name = client.name.strip()
+        if client_name:
+            # Sanitizar caracteres no permitidos en nombres de directorios (Windows: \ / : * ? " < > |)
+            for char in ['\\', '/', ':', '*', '?', '"', '<', '>', '|']:
+                client_name = client_name.replace(char, '_')
+            client_name = client_name.strip()
+            if client_name:
+                output_dir = os.path.join(output_dir, client_name)
+
     os.makedirs(output_dir, exist_ok=True)
     
     # Crear un nombre de archivo limpio libre de caracteres problemáticos
