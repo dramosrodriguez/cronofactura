@@ -17,6 +17,34 @@ class AplicacionFacturacion(ctk.CTk):
         self.minimum_height = 600
         self.minsize(self.minimum_width, self.minimum_height)
 
+        # Configurar icono de la aplicación (ventana y barra de tareas)
+        try:
+            import sys
+            import os
+            
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            
+            # 1. Configurar AppUserModelID en Windows para que se muestre el icono personalizado en la barra de tareas
+            if sys.platform.startswith("win"):
+                import ctypes
+                myappid = 'dramosrodriguez.cronofactura.1.0'
+                ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+                
+                # Asignar icono .ico
+                ico_path = os.path.join(current_dir, "..", "assets", "icon.ico")
+                if os.path.exists(ico_path):
+                    self.iconbitmap(ico_path)
+            else:
+                # Usar .png para otros sistemas operativos
+                png_path = os.path.join(current_dir, "..", "assets", "icon.png")
+                if os.path.exists(png_path):
+                    from PIL import Image, ImageTk
+                    img = Image.open(png_path)
+                    photo = ImageTk.PhotoImage(img)
+                    self.iconphoto(False, photo)
+        except Exception as e:
+            print(f"Advertencia al configurar el icono de la ventana: {e}", file=sys.stderr)
+
         # Configurar grid layout (1 fila, 2 columnas)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=0)  # Sidebar (ancho fijo)
