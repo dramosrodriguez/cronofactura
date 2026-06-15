@@ -7,6 +7,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 sys.path.append(os.path.join(BASE_DIR, "facturacion_app"))
 
 import json
+import src.database.db_manager as db_manager
 from src.database.db_manager import DatabaseManager
 from src.controllers.client_controller import ClientController
 from src.controllers.time_controller import TimeController
@@ -14,9 +15,26 @@ from src.controllers.invoice_controller import InvoiceController
 from src.utils.excel_exporter import ExcelExporter
 from src.models.time_log import TimeLog
 
+# Sobrescribir la ruta de la base de datos para pruebas
+db_manager.DB_PATH = os.path.join(BASE_DIR, "test_facturacion.db")
+
 def run_tests():
     print("--- INICIANDO PRUEBAS DE INTEGRACIÓN ---")
     
+    # Asegurar un entorno limpio eliminando la DB de prueba previa
+    if os.path.exists(db_manager.DB_PATH):
+        try:
+            os.remove(db_manager.DB_PATH)
+        except Exception:
+            pass
+    for ext in ["-wal", "-journal", "-shm"]:
+        p = db_manager.DB_PATH + ext
+        if os.path.exists(p):
+            try:
+                os.remove(p)
+            except Exception:
+                pass
+
     # 1. Verificar Inicialización de DB
     print("\n[1/5] Inicializando Base de Datos...")
     DatabaseManager.init_db()
@@ -161,7 +179,71 @@ def run_tests():
     print(f" - Excel Facturas: {excel_path}")
     print(f" - CSV Registro de Tiempos: {csv_path}")
     
-    print("\n--- ¡TODAS LAS PRUEBAS BACKEND PASARON CON ÉXITO! ---")
+    print("\n--- INICIANDO PRUEBAS DE ELIMINACIÓN ---")
+    
+    # 6. Probar eliminación de factura
+    print("Eliminando la factura por horas...")
+    invoice_id_to_delete = invoice_hours.id
+    success_delete_invoice = InvoiceController.delete_invoice(invoice_id_to_delete)
+    print(f"Resultado de eliminar factura {invoice_hours.invoice_number}: {success_delete_invoice}")
+    if not success_delete_invoice:
+        raise ValueError("Error: no se pudo eliminar la factura de la base de datos.")
+    
+    # Comprobar que la factura ya no existe
+    try:
+        InvoiceController.get_invoice_details(invoice_id_to_delete)
+        raise ValueError("Error: la factura eliminada sigue existiendo en el sistema.")
+    except ValueError as e:
+        if "La factura no existe" in str(e):
+            print("Confirmado: la factura ya no existe en la base de datos.")
+        else:
+            raise e
+
+    # Comprobar que las tareas asociadas (como log1) ahora tienen invoice_id = NULL
+    # Recuperamos todos los logs usando get_all
+    all_current_logs = TimeLog.get_all()
+    log1_after_delete = next((l for l in all_current_logs if l.id == log1.id), None)
+    if not log1_after_delete:
+        raise ValueError("Error: la tarea log1 se eliminó, cuando solo debía desvincularse de la factura.")
+    
+    print(f"Estado de log1 tras eliminar la factura: invoice_id = {log1_after_delete.invoice_id} (Debería ser None)")
+    if log1_after_delete.invoice_id is not None:
+        raise ValueError("Error: la tarea no se desvinculó de la factura (invoice_id no es NULL).")
+    else:
+        print("¡Verificación de desvinculación exitosa! La tarea volvió a quedar pendiente.")
+
+    # 7. Probar eliminación de tarea (log2)
+    print("\nEliminando la tarea log2...")
+    success_delete_log = TimeController.delete_log(log2.id)
+    print(f"Resultado de eliminar tarea: {success_delete_log}")
+    if not success_delete_log:
+        raise ValueError("Error: no se pudo eliminar la tarea.")
+
+    # Verificar que log2 ya no existe
+    all_current_logs_after = TimeLog.get_all()
+    log2_exists = any(l.id == log2.id for l in all_current_logs_after)
+    print(f"¿Existe la tarea log2 en la base de datos?: {log2_exists} (Debería ser False)")
+    if log2_exists:
+        raise ValueError("Error: la tarea log2 no se eliminó correctamente de la base de datos.")
+    else:
+        print("¡Verificación de eliminación de tarea exitosa!")
+
+    print("\n--- ¡TODAS LAS PRUEBAS BACKEND Y DE ELIMINACIÓN PASARON CON ÉXITO! ---")
+    
+    # Limpiar base de datos al finalizar
+    if os.path.exists(db_manager.DB_PATH):
+        try:
+            os.remove(db_manager.DB_PATH)
+        except Exception:
+            pass
+    for ext in ["-wal", "-journal", "-shm"]:
+        p = db_manager.DB_PATH + ext
+        if os.path.exists(p):
+            try:
+                os.remove(p)
+            except Exception:
+                pass
 
 if __name__ == "__main__":
     run_tests()
+

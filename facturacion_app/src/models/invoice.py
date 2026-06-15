@@ -103,6 +103,24 @@ class Invoice:
         finally:
             conn.close()
 
+    def delete(self) -> bool:
+        """Elimina la factura de la base de datos."""
+        if not self.id:
+            raise ValueError("No se puede eliminar una factura sin ID.")
+        
+        conn = DatabaseManager.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("DELETE FROM invoices WHERE id = ?", (self.id,))
+            conn.commit()
+            return cursor.rowcount > 0
+        except sqlite3.Error as e:
+            conn.rollback()
+            raise RuntimeError(f"Error al eliminar la factura: {e}")
+        finally:
+            conn.close()
+
+
     @classmethod
     def get_by_id(cls, invoice_id: int) -> 'Invoice':
         """Busca una factura por su ID."""

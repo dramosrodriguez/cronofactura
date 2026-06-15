@@ -156,3 +156,11 @@ class InvoiceController:
             "client": client,
             "logs": logs
         }
+
+    @staticmethod
+    def delete_invoice(invoice_id: int) -> bool:
+        """Elimina una factura de la base de datos por su ID."""
+        invoice = Invoice.get_by_id(invoice_id)
+        if not invoice:
+            raise ValueError("La factura especificada no existe.")
+        return invoice.delete()

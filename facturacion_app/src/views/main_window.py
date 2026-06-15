@@ -2,7 +2,9 @@ import customtkinter as ctk
 from src.views.dashboard_view import DashboardView
 from src.views.clients_view import ClientsView
 from src.views.time_view import TimeView
+from src.views.history_view import HistoryView
 from src.views.settings_view import SettingsView
+
 class AplicacionFacturacion(ctk.CTk):
     """Clase principal de la ventana de la aplicación de Facturación y Tiempos."""
 
@@ -25,7 +27,7 @@ class AplicacionFacturacion(ctk.CTk):
         # --- BARRA LATERAL (SIDEBAR) ---
         self.sidebar_frame = ctk.CTkFrame(self, width=220, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
-        self.sidebar_frame.grid_rowconfigure(5, weight=1)  # Espacio flexible antes de la config de apariencia
+        self.sidebar_frame.grid_rowconfigure(6, weight=1)  # Espacio flexible antes de la config de apariencia
 
         # Logo / Título de la App
         self.logo_label = ctk.CTkLabel(
@@ -77,9 +79,20 @@ class AplicacionFacturacion(ctk.CTk):
         )
         self.btn_time.grid(row=4, column=0, padx=20, pady=8, sticky="ew")
 
+        # Botón 4: Historial y Gestión
+        self.btn_history = ctk.CTkButton(
+            self.sidebar_frame, 
+            text="Historial y Gestión", 
+            anchor="w",
+            height=40,
+            command=lambda: self.select_view("history"),
+            font=ctk.CTkFont(size=13, weight="bold")
+        )
+        self.btn_history.grid(row=5, column=0, padx=20, pady=8, sticky="ew")
+
         # Selector de Tema / Apariencia (Al final del Sidebar)
         self.lbl_appearance = ctk.CTkLabel(self.sidebar_frame, text="Apariencia:", font=ctk.CTkFont(size=11))
-        self.lbl_appearance.grid(row=6, column=0, padx=20, pady=(10, 2), sticky="w")
+        self.lbl_appearance.grid(row=7, column=0, padx=20, pady=(10, 2), sticky="w")
         
         self.cmb_appearance = ctk.CTkOptionMenu(
             self.sidebar_frame, 
@@ -87,9 +100,9 @@ class AplicacionFacturacion(ctk.CTk):
             command=self.change_appearance_mode,
             height=28
         )
-        self.cmb_appearance.grid(row=7, column=0, padx=20, pady=(0, 15), sticky="ew")
+        self.cmb_appearance.grid(row=8, column=0, padx=20, pady=(0, 15), sticky="ew")
 
-        # Botón 4: Configuración (Bajo el selector de tema por estética)
+        # Botón 5: Configuración (Bajo el selector de tema por estética)
         self.btn_settings = ctk.CTkButton(
             self.sidebar_frame, 
             text="Configuración", 
@@ -102,13 +115,14 @@ class AplicacionFacturacion(ctk.CTk):
             border_width=1,
             border_color=("#CBD5E0", "#4A5568")
         )
-        self.btn_settings.grid(row=8, column=0, padx=20, pady=(0, 20), sticky="ew")
+        self.btn_settings.grid(row=9, column=0, padx=20, pady=(0, 20), sticky="ew")
 
         # Lista de botones para facilitar resaltado dinámico
         self.nav_buttons = {
             "dashboard": self.btn_dashboard,
             "clients": self.btn_clients,
             "time": self.btn_time,
+            "history": self.btn_history,
             "settings": self.btn_settings
         }
 
@@ -123,6 +137,7 @@ class AplicacionFacturacion(ctk.CTk):
             "dashboard": DashboardView(self.main_container),
             "clients": ClientsView(self.main_container),
             "time": TimeView(self.main_container),
+            "history": HistoryView(self.main_container),
             "settings": SettingsView(self.main_container)
         }
 
