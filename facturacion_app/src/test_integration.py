@@ -12,6 +12,7 @@ from src.controllers.client_controller import ClientController
 from src.controllers.time_controller import TimeController
 from src.controllers.invoice_controller import InvoiceController
 from src.utils.excel_exporter import ExcelExporter
+from src.models.time_log import TimeLog
 
 def run_tests():
     print("--- INICIANDO PRUEBAS DE INTEGRACIÓN ---")

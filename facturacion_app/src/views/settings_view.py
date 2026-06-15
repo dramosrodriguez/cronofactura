@@ -137,6 +137,25 @@ class SettingsView(ctk.CTkFrame):
         )
         self.btn_select_path.grid(row=1, column=2, padx=(10, 15), pady=10)
 
+        # --- SECCIÓN ACTUALIZACIONES DE LA APLICACIÓN ---
+        self.updates_frame = ctk.CTkFrame(self.scrollable_container)
+        self.updates_frame.grid(row=4, column=0, sticky="ew", pady=(0, 20), padx=5)
+        self.updates_frame.grid_columnconfigure(0, weight=1)
+
+        self.updates_title = ctk.CTkLabel(
+            self.updates_frame, 
+            text="Actualizaciones de Software", 
+            font=ctk.CTkFont(size=16, weight="bold")
+        )
+        self.updates_title.grid(row=0, column=0, sticky="w", padx=15, pady=(15, 10))
+
+        self.switch_updates = ctk.CTkSwitch(
+            self.updates_frame,
+            text="Buscar nuevas versiones al iniciar la aplicación",
+            font=ctk.CTkFont(size=13)
+        )
+        self.switch_updates.grid(row=1, column=0, sticky="w", padx=15, pady=(5, 15))
+
         # --- BOTÓN GUARDAR Y ESTADO ---
         self.btn_guardar = ctk.CTkButton(
             self.scrollable_container, 
@@ -147,10 +166,10 @@ class SettingsView(ctk.CTkFrame):
             fg_color="#2B6CB0",
             hover_color="#1A365D"
         )
-        self.btn_guardar.grid(row=4, column=0, pady=(10, 20), padx=5, sticky="ew")
+        self.btn_guardar.grid(row=5, column=0, pady=(10, 20), padx=5, sticky="ew")
 
         self.lbl_status = ctk.CTkLabel(self.scrollable_container, text="", font=ctk.CTkFont(size=12, slant="italic"))
-        self.lbl_status.grid(row=5, column=0, pady=(0, 10))
+        self.lbl_status.grid(row=6, column=0, pady=(0, 10))
 
         # Cargar valores iniciales
         self.load_settings()
@@ -190,6 +209,13 @@ class SettingsView(ctk.CTkFrame):
             self.ent_ruta_facturas.delete(0, ctk.END)
             self.ent_ruta_facturas.insert(0, config.get("ruta_facturas", ""))
             
+            # Cargar estado de buscar_actualizaciones
+            buscar_actualizaciones = config.get("buscar_actualizaciones", True)
+            if buscar_actualizaciones:
+                self.switch_updates.select()
+            else:
+                self.switch_updates.deselect()
+            
             self.show_status("Configuración cargada correctamente.", "green")
         except Exception as e:
             self.show_status("Error al cargar configuraciones.", "red")
@@ -228,6 +254,8 @@ class SettingsView(ctk.CTkFrame):
             messagebox.showerror("Error de Validación", "Las tasas de impuestos deben ser valores numéricos positivos (Ej. 21.0, 15.0).")
             return
 
+        buscar_actualizaciones = bool(self.switch_updates.get())
+
         # Construir estructura JSON
         config_data = {
             "emisor": {
@@ -241,7 +269,8 @@ class SettingsView(ctk.CTkFrame):
                 "iva_porcentaje": iva_val,
                 "irpf_porcentaje": irpf_val
             },
-            "ruta_facturas": ruta_facturas
+            "ruta_facturas": ruta_facturas,
+            "buscar_actualizaciones": buscar_actualizaciones
         }
 
         # Asegurarse de que el directorio del archivo settings.json exista

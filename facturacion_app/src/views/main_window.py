@@ -129,6 +129,9 @@ class AplicacionFacturacion(ctk.CTk):
         # Mostrar la primera vista por defecto (Dashboard)
         self.select_view("dashboard")
 
+        # Comprobar actualizaciones en segundo plano tras 1 segundo
+        self.after(1000, self.verificar_actualizaciones)
+
     def select_view(self, view_name: str):
         """Alterna el frame visible en el contenedor derecho y refresca su estado."""
         if self.current_view_name == view_name:
@@ -165,3 +168,53 @@ class AplicacionFacturacion(ctk.CTk):
     def change_appearance_mode(self, new_mode: str):
         """Cambia el modo de color de la interfaz (Oscuro/Claro/Sistema)."""
         ctk.set_appearance_mode(new_mode)
+
+    def verificar_actualizaciones(self):
+        """Inicia la comprobación de actualizaciones en segundo plano."""
+        from src.utils.update_manager import UpdateManager
+        from src import __version__
+
+        def callback(result):
+            # Esta callback se ejecuta en el hilo secundario
+            if result and result.get("update_available"):
+                # Agendar la visualización del diálogo en el hilo principal de la UI
+                self.after(0, lambda: self.mostrar_dialogo_actualizacion(result))
+
+        UpdateManager.check_for_updates_async(__version__, callback)
+
+    def mostrar_dialogo_actualizacion(self, version_info):
+        """Muestra el diálogo para notificar la nueva versión disponible."""
+        from src.views.update_dialogs import UpdateDialog
+        dialog = UpdateDialog(self, version_info, lambda: self.iniciar_descarga_actualizacion(version_info["zipball_url"]))
+
+    def iniciar_descarga_actualizacion(self, zipball_url):
+        """Muestra la ventana de progreso e inicia la descarga en segundo plano."""
+        import threading
+        from tkinter import messagebox
+        from src.views.update_dialogs import DownloadProgressDialog
+        from src.utils.update_manager import UpdateManager
+
+        progress_dialog = DownloadProgressDialog(self)
+
+        def run_download():
+            def progress_cb(percent, bytes_downloaded):
+                # Actualizar progreso en el hilo principal
+                self.after(0, lambda: progress_dialog.update_progress(percent, bytes_downloaded))
+
+            success = UpdateManager.download_and_extract_update(zipball_url, progress_cb)
+            # Procesar finalización de la descarga en el hilo principal
+            self.after(0, lambda: finalizar_descarga(success))
+
+        def finalizar_descarga(success):
+            progress_dialog.destroy()
+            if success:
+                try:
+                    UpdateManager.launch_external_updater()
+                    self.destroy()  # Cerrar la aplicación principal para liberar archivos
+                except Exception as e:
+                    messagebox.showerror("Error de Actualización", f"No se pudo iniciar el instalador externo: {e}")
+            else:
+                messagebox.showerror("Error de Descarga", "No se pudo descargar o descomprimir la actualización desde GitHub.")
+
+        download_thread = threading.Thread(target=run_download, daemon=True)
+        download_thread.start()

@@ -22,7 +22,14 @@ def main():
         print(f"Error crítico al inicializar la base de datos: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # 3. Arrancar la interfaz gráfica principal
+    # 3. Limpiar archivos temporales de actualizaciones pasadas si existen
+    try:
+        from src.utils.update_manager import UpdateManager
+        UpdateManager.cleanup_temp_files()
+    except Exception as e:
+        print(f"Advertencia al limpiar archivos temporales de actualización: {e}", file=sys.stderr)
+
+    # 4. Arrancar la interfaz gráfica principal
     try:
         app = AplicacionFacturacion()
         app.mainloop()

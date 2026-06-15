@@ -1,6 +1,6 @@
 [project]
 name = "gestion-tiempo-y-facturas"
-version = "0.1.1"
+version = "0.1.2"
 description = "Aplicación de escritorio para la gestión de tiempo de trabajo y generación automática de facturas en PDF."
 readme = "README.md"
 requires-python = ">=3.8"

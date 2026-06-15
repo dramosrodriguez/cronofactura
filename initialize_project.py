@@ -31,7 +31,8 @@ def main():
                 "iva_porcentaje": 21.0,
                 "irpf_porcentaje": 15.0
             },
-            "ruta_facturas": ""
+            "ruta_facturas": "",
+            "buscar_actualizaciones": true
         }
         try:
             with open(settings_path, "w", encoding="utf-8") as f:
