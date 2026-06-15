@@ -32,7 +32,7 @@ def main():
                 "irpf_porcentaje": 15.0
             },
             "ruta_facturas": "",
-            "buscar_actualizaciones": true
+            "buscar_actualizaciones": True
         }
         try:
             with open(settings_path, "w", encoding="utf-8") as f:

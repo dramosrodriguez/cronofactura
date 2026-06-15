@@ -1,2 +1,2 @@
 # Package inicializador de la aplicación
-__version__ = "0.1.2"
+__version__ = "0.1.3"
