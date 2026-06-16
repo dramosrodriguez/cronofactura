@@ -47,3 +47,7 @@ facturas_emitidas/*
 *.swp
 .DS_Store
 Thumbs.db
+
+# === Releases ===
+releases/
+
