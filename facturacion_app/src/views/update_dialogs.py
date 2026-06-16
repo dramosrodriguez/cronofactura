@@ -1,5 +1,167 @@
 import customtkinter as ctk
 import webbrowser
+import re
+
+def parse_inline(text, base_tags=None, link_bindings=None):
+    if base_tags is None:
+        base_tags = ()
+    if link_bindings is None:
+        link_bindings = []
+        
+    # Pattern to match: [text](url), `code`, ***bold italic***, **bold**, *italic*
+    pattern = re.compile(r'(\[.+?\]\(.+?\)|`[^`]+`|\*\*\*.*?\*\*\*|___.*?___|\*\*.*?\*\*|__.*?__|\*.*?\*|_.*?_)')
+    parts = pattern.split(text)
+    result = []
+    
+    for part in parts:
+        if not part:
+            continue
+            
+        if part.startswith('[') and '](' in part and part.endswith(')'):
+            close_bracket = part.find(']')
+            link_text = part[1:close_bracket]
+            url = part[close_bracket+2:-1]
+            
+            link_tag = f"link_{len(link_bindings)}"
+            link_bindings.append((link_tag, url))
+            
+            result.append((link_text, tuple(base_tags) + ("link", link_tag)))
+        elif part.startswith('`') and part.endswith('`'):
+            result.append((part[1:-1], tuple(base_tags) + ("code",)))
+        elif part.startswith('***') and part.endswith('***'):
+            result.append((part[3:-3], tuple(base_tags) + ("bold_italic",)))
+        elif part.startswith('___') and part.endswith('___'):
+            result.append((part[3:-3], tuple(base_tags) + ("bold_italic",)))
+        elif part.startswith('**') and part.endswith('**'):
+            result.append((part[2:-2], tuple(base_tags) + ("bold",)))
+        elif part.startswith('__') and part.endswith('__'):
+            result.append((part[2:-2], tuple(base_tags) + ("bold",)))
+        elif part.startswith('*') and part.endswith('*'):
+            result.append((part[1:-1], tuple(base_tags) + ("italic",)))
+        elif part.startswith('_') and part.endswith('_'):
+            result.append((part[1:-1], tuple(base_tags) + ("italic",)))
+        else:
+            result.append((part, tuple(base_tags)))
+            
+    return result
+
+
+def render_markdown(textbox, markdown_text):
+    target = textbox._textbox if hasattr(textbox, "_textbox") else textbox
+    
+    is_dark = ctk.get_appearance_mode().lower() == "dark"
+    h1_color = "#90CDF4" if is_dark else "#1A365D"
+    h2_color = "#CBD5E0" if is_dark else "#2D3748"
+    code_bg = "#2D3748" if is_dark else "#EDF2F7"
+    code_fg = "#F7FAFC" if is_dark else "#2D3748"
+    hr_color = "#4A5568" if is_dark else "#E2E8F0"
+    quote_fg = "#A0AEC0" if is_dark else "#4A5568"
+    link_fg = "#90CDF4" if is_dark else "#2B6CB0"
+    
+    # Configure tags on underlying tk.Text widget
+    target.tag_config("h1", font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"), foreground=h1_color)
+    target.tag_config("h2", font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"), foreground=h2_color)
+    target.tag_config("h3", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), foreground=h2_color)
+    target.tag_config("bold", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"))
+    target.tag_config("italic", font=ctk.CTkFont(family="Segoe UI", size=11, slant="italic"))
+    target.tag_config("bold_italic", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold", slant="italic"))
+    target.tag_config("code", font=ctk.CTkFont(family="Consolas", size=10), background=code_bg, foreground=code_fg)
+    target.tag_config("code_block", font=ctk.CTkFont(family="Consolas", size=10), background=code_bg, foreground=code_fg)
+    target.tag_config("bullet", lmargin1=15, lmargin2=25)
+    target.tag_config("bullet_marker", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), foreground=h1_color)
+    target.tag_config("quote", font=ctk.CTkFont(family="Segoe UI", size=11, slant="italic"), foreground=quote_fg, lmargin1=20, lmargin2=20)
+    target.tag_config("hr", font=ctk.CTkFont(family="Segoe UI", size=11), foreground=hr_color)
+    target.tag_config("link", foreground=link_fg, underline=True)
+    
+    textbox.configure(state="normal")
+    textbox.delete("1.0", "end")
+    
+    lines = markdown_text.splitlines()
+    in_code_block = False
+    code_block_lines = []
+    link_bindings = []
+    
+    for line in lines:
+        if line.strip().startswith("```"):
+            if in_code_block:
+                content = "\n".join(code_block_lines) + "\n"
+                target.insert("end", content, ("code_block",))
+                in_code_block = False
+                code_block_lines = []
+            else:
+                in_code_block = True
+            continue
+            
+        if in_code_block:
+            code_block_lines.append(line)
+            continue
+            
+        # Block quotes
+        if line.startswith(">"):
+            content = line[1:].lstrip()
+            inline_parts = parse_inline(content, ("quote",), link_bindings)
+            for text, tags in inline_parts:
+                target.insert("end", text, tags)
+            target.insert("end", "\n")
+            continue
+            
+        # Headers
+        header_match = re.match(r'^(#{1,6})\s+(.*)$', line)
+        if header_match:
+            level = len(header_match.group(1))
+            content = header_match.group(2)
+            tag = f"h{min(level, 3)}"
+            
+            inline_parts = parse_inline(content, (tag,), link_bindings)
+            if target.index("insert") != "1.0":
+                target.insert("end", "\n")
+            for text, tags in inline_parts:
+                target.insert("end", text, tags)
+            target.insert("end", "\n\n")
+            continue
+            
+        # Horizontal rules
+        if line.strip() in ("---", "***", "___"):
+            target.insert("end", "─" * 40 + "\n\n", ("hr",))
+            continue
+            
+        # List items
+        list_match = re.match(r'^(\s*)[-*+]\s+(.*)$', line)
+        if list_match:
+            content = list_match.group(2)
+            target.insert("end", "  • ", ("bullet_marker",))
+            inline_parts = parse_inline(content, ("bullet",), link_bindings)
+            for text, tags in inline_parts:
+                target.insert("end", text, tags)
+            target.insert("end", "\n")
+            continue
+            
+        # Normal line
+        if line.strip() == "":
+            target.insert("end", "\n")
+        else:
+            inline_parts = parse_inline(line, (), link_bindings)
+            for text, tags in inline_parts:
+                target.insert("end", text, tags)
+            target.insert("end", "\n")
+            
+    # Link events bindings
+    for tag_name, url in link_bindings:
+        def make_handler(u):
+            return lambda event: webbrowser.open_new_tab(u)
+        
+        def make_enter():
+            return lambda event: target.config(cursor="hand2")
+            
+        def make_leave():
+            return lambda event: target.config(cursor="arrow")
+            
+        target.tag_bind(tag_name, "<Button-1>", make_handler(url))
+        target.tag_bind(tag_name, "<Enter>", make_enter())
+        target.tag_bind(tag_name, "<Leave>", make_leave())
+        
+    textbox.configure(state="disabled")
+
 
 class UpdateDialog(ctk.CTkToplevel):
     """Ventana modal premium para avisar al usuario de que hay una nueva versión disponible,
@@ -90,8 +252,9 @@ class UpdateDialog(ctk.CTkToplevel):
         notes_content = version_info.get("body", "").strip()
         if not notes_content:
             notes_content = "No se han proporcionado notas de lanzamiento para esta versión."
-        self.notes_text.insert("1.0", notes_content)
-        self.notes_text.configure(state="disabled")
+        
+        # Render markdown to textbox
+        render_markdown(self.notes_text, notes_content)
         
         # Botonera
         self.btn_frame = ctk.CTkFrame(self, fg_color="transparent")

@@ -256,22 +256,28 @@ class SettingsView(ctk.CTkFrame):
 
         buscar_actualizaciones = bool(self.switch_updates.get())
 
-        # Construir estructura JSON
-        config_data = {
-            "emisor": {
-                "nombre": nombre,
-                "nif": nif,
-                "direccion": direccion,
-                "email": email,
-                "cuenta_bancaria": cuenta_bancaria
-            },
-            "impuestos_defecto": {
-                "iva_porcentaje": iva_val,
-                "irpf_porcentaje": irpf_val
-            },
-            "ruta_facturas": ruta_facturas,
-            "buscar_actualizaciones": buscar_actualizaciones
+        # Cargar configuración existente para preservar otros valores (como apariencia)
+        config_data = {}
+        if os.path.exists(SETTINGS_PATH):
+            try:
+                with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
+                    config_data = json.load(f)
+            except Exception:
+                pass
+
+        config_data["emisor"] = {
+            "nombre": nombre,
+            "nif": nif,
+            "direccion": direccion,
+            "email": email,
+            "cuenta_bancaria": cuenta_bancaria
         }
+        config_data["impuestos_defecto"] = {
+            "iva_porcentaje": iva_val,
+            "irpf_porcentaje": irpf_val
+        }
+        config_data["ruta_facturas"] = ruta_facturas
+        config_data["buscar_actualizaciones"] = buscar_actualizaciones
 
         # Asegurarse de que el directorio del archivo settings.json exista
         os.makedirs(os.path.dirname(SETTINGS_PATH), exist_ok=True)

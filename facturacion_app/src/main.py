@@ -12,7 +12,19 @@ def main():
     """Punto de entrada principal para inicializar la base de datos y arrancar la GUI."""
     
     # 1. Configurar la apariencia inicial
-    ctk.set_appearance_mode("System")
+    import json
+    theme = "System"
+    try:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        settings_path = os.path.join(base_dir, "config", "settings.json")
+        if os.path.exists(settings_path):
+            with open(settings_path, "r", encoding="utf-8") as f:
+                config = json.load(f)
+                theme = config.get("apariencia", "System")
+    except Exception as e:
+        print(f"Advertencia al cargar la apariencia desde la configuración: {e}", file=sys.stderr)
+
+    ctk.set_appearance_mode(theme)
     ctk.set_default_color_theme("blue")
 
     # 2. Inicializar base de datos y aplicar migraciones

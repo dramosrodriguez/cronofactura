@@ -130,6 +130,21 @@ class AplicacionFacturacion(ctk.CTk):
         )
         self.cmb_appearance.grid(row=8, column=0, padx=20, pady=(0, 15), sticky="ew")
 
+        # Leer apariencia guardada para el OptionMenu
+        saved_appearance = "System"
+        try:
+            import json
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            base_dir = os.path.dirname(os.path.dirname(current_dir))
+            settings_path = os.path.join(base_dir, "config", "settings.json")
+            if os.path.exists(settings_path):
+                with open(settings_path, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                    saved_appearance = config.get("apariencia", "System")
+        except Exception:
+            pass
+        self.cmb_appearance.set(saved_appearance)
+
         # Botón 5: Configuración (Bajo el selector de tema por estética)
         self.btn_settings = ctk.CTkButton(
             self.sidebar_frame, 
@@ -211,6 +226,34 @@ class AplicacionFacturacion(ctk.CTk):
     def change_appearance_mode(self, new_mode: str):
         """Cambia el modo de color de la interfaz (Oscuro/Claro/Sistema)."""
         ctk.set_appearance_mode(new_mode)
+        
+        # Guardar en settings.json
+        try:
+            import json
+            import os
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            base_dir = os.path.dirname(os.path.dirname(current_dir))
+            settings_path = os.path.join(base_dir, "config", "settings.json")
+            
+            config_data = {}
+            if os.path.exists(settings_path):
+                with open(settings_path, "r", encoding="utf-8") as f:
+                    config_data = json.load(f)
+            
+            config_data["apariencia"] = new_mode
+            
+            os.makedirs(os.path.dirname(settings_path), exist_ok=True)
+            tmp_path = settings_path + ".tmp"
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                json.dump(config_data, f, indent=2, ensure_ascii=False)
+            
+            if os.path.exists(settings_path):
+                os.replace(tmp_path, settings_path)
+            else:
+                os.rename(tmp_path, settings_path)
+        except Exception as e:
+            import sys
+            print(f"Error al guardar la apariencia en la configuración: {e}", file=sys.stderr)
 
     def verificar_actualizaciones(self):
         """Inicia la comprobación de actualizaciones en segundo plano."""
