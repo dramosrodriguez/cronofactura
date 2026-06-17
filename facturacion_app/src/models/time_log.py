@@ -28,6 +28,18 @@ class TimeLog:
             invoice_id=row["invoice_id"]
         )
 
+    @classmethod
+    def get_by_id(cls, log_id: int) -> 'TimeLog':
+        """Obtiene un registro de tiempo por su ID."""
+        conn = DatabaseManager.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT * FROM time_logs WHERE id = ?", (log_id,))
+            row = cursor.fetchone()
+            return cls.from_row(row) if row else None
+        finally:
+            conn.close()
+
     def save(self) -> int:
         """Guarda el registro de tiempo en la base de datos."""
         conn = DatabaseManager.get_connection()
@@ -46,6 +58,30 @@ class TimeLog:
         except sqlite3.Error as e:
             conn.rollback()
             raise RuntimeError(f"Error al guardar el registro de tiempo: {e}")
+        finally:
+            conn.close()
+
+    def update(self) -> bool:
+        """Actualiza el registro de tiempo en la base de datos."""
+        if not self.id:
+            raise ValueError("No se puede actualizar un registro sin ID.")
+        
+        conn = DatabaseManager.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                """
+                UPDATE time_logs
+                SET client_id = ?, date = ?, hours = ?, description = ?, notes = ?, invoice_id = ?
+                WHERE id = ?
+                """,
+                (self.client_id, self.date, self.hours, self.description, self.notes, self.invoice_id, self.id)
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+        except sqlite3.Error as e:
+            conn.rollback()
+            raise RuntimeError(f"Error al actualizar el registro de tiempo: {e}")
         finally:
             conn.close()
 

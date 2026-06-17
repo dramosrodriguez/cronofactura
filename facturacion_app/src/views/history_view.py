@@ -340,8 +340,13 @@ class HistoryView(ctk.CTkFrame):
                 billed_status = "Pendiente"
                 billed_color = "#B7791F"
 
+            total_minutes = round(log["hours"] * 60)
+            h_val = total_minutes // 60
+            m_val = total_minutes % 60
+            time_str = f"{h_val}h {m_val}m" if h_val > 0 else f"{m_val}m"
+
             detail_text = (
-                f"Fecha: {log['date']}  |  Cliente: {log['client_name']}  |  Horas: {log['hours']:.2f} h\n"
+                f"Fecha: {log['date']}  |  Cliente: {log['client_name']}  |  Tiempo: {time_str} ({log['hours']:.2f} h)\n"
                 f"Descripción: {log['description']}"
             )
             if log.get("notes"):
@@ -368,6 +373,34 @@ class HistoryView(ctk.CTkFrame):
             )
             lbl_status.grid(row=0, column=0, padx=(0, 15))
 
+            current_col = 1
+            if log["invoice_id"] is None:
+                # Botón Continuar en Cronómetro
+                btn_timer = ctk.CTkButton(
+                    btn_frame,
+                    text="⏱",
+                    width=28,
+                    height=26,
+                    fg_color="#319795",
+                    hover_color="#234E52",
+                    command=lambda l=log: self.continue_task_in_timer(l)
+                )
+                btn_timer.grid(row=0, column=current_col, padx=(0, 5))
+                current_col += 1
+                
+                # Botón Editar
+                btn_edit = ctk.CTkButton(
+                    btn_frame,
+                    text="✏",
+                    width=28,
+                    height=26,
+                    fg_color="#2B6CB0",
+                    hover_color="#1A365D",
+                    command=lambda l=log: self.continue_task_in_manual(l)
+                )
+                btn_edit.grid(row=0, column=current_col, padx=(0, 5))
+                current_col += 1
+
             # Botón Eliminar
             btn_del = ctk.CTkButton(
                 btn_frame,
@@ -378,7 +411,7 @@ class HistoryView(ctk.CTkFrame):
                 hover_color="#C53030",
                 command=lambda l_id=log["id"]: self.delete_task(l_id)
             )
-            btn_del.grid(row=0, column=1)
+            btn_del.grid(row=0, column=current_col)
 
     def open_pdf(self, path):
         """Abre un PDF con la aplicación predeterminada del sistema."""
@@ -430,3 +463,15 @@ class HistoryView(ctk.CTkFrame):
                 messagebox.showerror("Error", "No se pudo eliminar la tarea de la base de datos.")
         except Exception as e:
             messagebox.showerror("Error", f"Error al intentar eliminar la tarea: {e}")
+
+    def continue_task_in_timer(self, log):
+        """Redirige a la vista de registro cargando la tarea en el cronómetro."""
+        main_window = self.winfo_toplevel()
+        main_window.select_view("time")
+        main_window.views["time"].continue_in_timer(log)
+
+    def continue_task_in_manual(self, log):
+        """Redirige a la vista de registro cargando la tarea en el editor manual."""
+        main_window = self.winfo_toplevel()
+        main_window.select_view("time")
+        main_window.views["time"].continue_in_manual(log)

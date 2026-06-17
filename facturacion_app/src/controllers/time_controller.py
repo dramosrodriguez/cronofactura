@@ -38,6 +38,55 @@ class TimeController:
         return new_log
 
     @staticmethod
+    def update_log(log_id: int, client_id: int, date_str: str, hours: float, description: str, notes: str = None) -> bool:
+        """Actualiza un registro de tiempo existente si no está facturado."""
+        description = description.strip()
+        notes = notes.strip() if notes else None
+
+        if not log_id:
+            raise ValueError("ID de tarea no válido.")
+        
+        # Obtener el registro de la base de datos
+        log = TimeLog.get_by_id(log_id)
+        if not log:
+            raise ValueError("La tarea no existe.")
+            
+        # Validar si ya está facturada
+        if log.invoice_id is not None:
+            raise ValueError("No se puede modificar una tarea que ya ha sido facturada.")
+
+        if not client_id:
+            raise ValueError("Debe seleccionar un cliente.")
+
+        # Validar si el cliente realmente existe
+        client = Client.get_by_id(client_id)
+        if not client:
+            raise ValueError("El cliente seleccionado no existe.")
+
+        # Validar la fecha
+        try:
+            from datetime import datetime
+            datetime.strptime(date_str, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError("El formato de fecha debe ser YYYY-MM-DD (Ej. 2026-06-14).")
+
+        # Validar horas
+        if hours <= 0:
+            raise ValueError("El número de horas trabajadas debe ser mayor que 0.")
+
+        if not description:
+            raise ValueError("Debe proporcionar una descripción del trabajo realizado.")
+
+        # Actualizar campos
+        log.client_id = client_id
+        log.date = date_str
+        log.hours = hours
+        log.description = description
+        log.notes = notes
+
+        return log.update()
+
+    @staticmethod
     def delete_log(log_id: int) -> bool:
         """Elimina un registro de tiempo determinado."""
         log = TimeLog.get_all() # o directamente recuperar por id, pero como no añadimos get_by_id en TimeLog, podemos crear una instancia con el ID y llamarle delete

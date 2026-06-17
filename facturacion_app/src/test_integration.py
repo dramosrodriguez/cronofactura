@@ -225,8 +225,58 @@ def run_tests():
     print(f"¿Existe la tarea log2 en la base de datos?: {log2_exists} (Debería ser False)")
     if log2_exists:
         raise ValueError("Error: la tarea log2 no se eliminó correctamente de la base de datos.")
-    else:
-        print("¡Verificación de eliminación de tarea exitosa!")
+    # 8. Probar actualización de tareas (update_log)
+    print("\n[8] Probando actualización de tareas...")
+    test_update_log = TimeController.create_log(client.id, "2026-06-14", 2.0, "Tarea para actualizar")
+    print(f"Log creado para actualizar: {test_update_log.description} | {test_update_log.hours}h")
+    
+    # Intentar actualización exitosa
+    success_update = TimeController.update_log(
+        log_id=test_update_log.id,
+        client_id=client.id,
+        date_str="2026-06-15",
+        hours=3.5,
+        description="Tarea actualizada con éxito",
+        notes="Nueva nota interna"
+    )
+    print(f"Resultado de la actualización: {success_update}")
+    if not success_update:
+        raise ValueError("Error: la tarea no se pudo actualizar.")
+        
+    # Verificar cambios en BD
+    updated_log = TimeLog.get_by_id(test_update_log.id)
+    print(f"Detalles actualizados: Desc={updated_log.description}, Horas={updated_log.hours}, Fecha={updated_log.date}, Notes={updated_log.notes}")
+    if updated_log.description != "Tarea actualizada con éxito" or updated_log.hours != 3.5 or updated_log.date != "2026-06-15" or updated_log.notes != "Nueva nota interna":
+        raise ValueError("Error: los datos de la tarea en base de datos no coinciden con la actualización.")
+
+    # Vincular a una nueva factura
+    invoice_num_test = f"F-TST-{int(os.getpid())}"
+    invoice_test = InvoiceController.create_invoice(
+        invoice_number=invoice_num_test,
+        client_id=client.id,
+        start_date_str="2026-06-01",
+        end_date_str="2026-06-30",
+        issue_date_str="2026-06-14",
+        due_date_str="2026-07-14",
+        vat_rate=21.0,
+        irpf_rate=15.0,
+        billing_type="horas",
+        selected_log_ids=[updated_log.id]
+    )
+    print(f"Log vinculado a la factura: {invoice_test.invoice_number}")
+    
+    # Intentar actualización de una tarea facturada (debe lanzar ValueError)
+    try:
+        TimeController.update_log(
+            log_id=updated_log.id,
+            client_id=client.id,
+            date_str="2026-06-16",
+            hours=4.0,
+            description="Intento de actualizar tarea facturada"
+        )
+        raise ValueError("Error: se permitió la actualización de una tarea ya facturada.")
+    except ValueError as e:
+        print(f"Excepción controlada correctamente al actualizar tarea facturada: {e}")
 
     print("\n--- ¡TODAS LAS PRUEBAS BACKEND Y DE ELIMINACIÓN PASARON CON ÉXITO! ---")
     

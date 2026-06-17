@@ -17,8 +17,8 @@ class TimeView(ctk.CTkFrame):
     def __init__(self, parent):
         super().__init__(parent, fg_color="transparent")
         
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1, uniform="panel")
+        self.grid_columnconfigure(1, weight=1, uniform="panel")
         self.grid_rowconfigure(0, weight=1)
 
         self.clients_map = {}  # Mapeo: "Nombre del Cliente" -> Client Object
@@ -30,6 +30,8 @@ class TimeView(ctk.CTkFrame):
         self.timer_running = False
         self.timer_paused = False
         self.timer_after_id = None
+        self.timer_current_log_id = None
+        self.manual_current_log_id = None
 
         # --- PANEL IZQUIERDO: REGISTRO DE HORAS ---
         self.left_panel = ctk.CTkFrame(self)
@@ -53,24 +55,47 @@ class TimeView(ctk.CTkFrame):
         # ----------------------------------------------------
         # PESTAÑA: REGISTRO MANUAL
         # ----------------------------------------------------
+        # Banner de edición de tarea en manual (oculto por defecto)
+        self.manual_edit_banner_frame = ctk.CTkFrame(self.tab_manual, fg_color="transparent")
+        
+        self.lbl_manual_edit_banner = ctk.CTkLabel(
+            self.manual_edit_banner_frame, 
+            text="✏️ Editando Tarea", 
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=("#B7791F", "#D69E2E")
+        )
+        self.lbl_manual_edit_banner.pack(side="left", padx=5)
+        
+        self.btn_manual_edit_cancel = ctk.CTkButton(
+            self.manual_edit_banner_frame,
+            text="✕ Cancelar",
+            width=70,
+            height=22,
+            fg_color="#E53E3E",
+            hover_color="#C53030",
+            font=ctk.CTkFont(size=10),
+            command=self.cancel_manual_edit
+        )
+        self.btn_manual_edit_cancel.pack(side="left", padx=5)
+
         # Selección de cliente
         self.lbl_client = ctk.CTkLabel(self.tab_manual, text="Cliente:")
-        self.lbl_client.grid(row=0, column=0, sticky="e", padx=(0, 10), pady=6)
+        self.lbl_client.grid(row=1, column=0, sticky="e", padx=(0, 10), pady=6)
         self.cmb_clients = ctk.CTkOptionMenu(self.tab_manual, values=["Cargando clientes..."])
-        self.cmb_clients.grid(row=0, column=1, sticky="ew", pady=6)
-
-        # Fecha (Con botón selector de calendario)
+        self.cmb_clients.grid(row=1, column=1, sticky="ew", pady=6)
+ 
+         # Fecha (Con botón selector de calendario)
         self.lbl_date = ctk.CTkLabel(self.tab_manual, text="Fecha (YYYY-MM-DD):")
-        self.lbl_date.grid(row=1, column=0, sticky="e", padx=(0, 10), pady=6)
-        
+        self.lbl_date.grid(row=2, column=0, sticky="e", padx=(0, 10), pady=6)
+         
         self.date_manual_frame = ctk.CTkFrame(self.tab_manual, fg_color="transparent")
-        self.date_manual_frame.grid(row=1, column=1, sticky="ew", pady=6)
+        self.date_manual_frame.grid(row=2, column=1, sticky="ew", pady=6)
         self.date_manual_frame.grid_columnconfigure(0, weight=1)
-        
+         
         self.ent_date = ctk.CTkEntry(self.date_manual_frame)
         self.ent_date.grid(row=0, column=0, sticky="ew", padx=(0, 5))
         self.ent_date.insert(0, datetime.now().strftime("%Y-%m-%d"))
-        
+         
         self.btn_date_manual = ctk.CTkButton(
             self.date_manual_frame, 
             text="📅", 
@@ -78,26 +103,40 @@ class TimeView(ctk.CTkFrame):
             command=lambda: self.open_date_picker(self.ent_date)
         )
         self.btn_date_manual.grid(row=0, column=1)
-
-        # Horas
-        self.lbl_hours = ctk.CTkLabel(self.tab_manual, text="Horas Dedicadas:")
-        self.lbl_hours.grid(row=2, column=0, sticky="e", padx=(0, 10), pady=6)
-        self.ent_hours = ctk.CTkEntry(self.tab_manual, placeholder_text="Ej. 4.5 o 2")
-        self.ent_hours.grid(row=2, column=1, sticky="ew", pady=6)
-
-        # Descripción
+ 
+         # Tiempo Dedicado (Horas y Minutos)
+        self.lbl_hours = ctk.CTkLabel(self.tab_manual, text="Tiempo Dedicado:")
+        self.lbl_hours.grid(row=3, column=0, sticky="e", padx=(0, 10), pady=6)
+        
+        self.hours_manual_frame = ctk.CTkFrame(self.tab_manual, fg_color="transparent")
+        self.hours_manual_frame.grid(row=3, column=1, sticky="ew", pady=6)
+        self.hours_manual_frame.grid_columnconfigure((0, 2), weight=1)
+        
+        self.ent_hours = ctk.CTkEntry(self.hours_manual_frame, placeholder_text="Ej. 2")
+        self.ent_hours.grid(row=0, column=0, sticky="ew", padx=(0, 2))
+        
+        self.lbl_h_suffix = ctk.CTkLabel(self.hours_manual_frame, text="h")
+        self.lbl_h_suffix.grid(row=0, column=1, padx=(0, 10))
+        
+        self.ent_minutes = ctk.CTkEntry(self.hours_manual_frame, placeholder_text="Ej. 30")
+        self.ent_minutes.grid(row=0, column=2, sticky="ew", padx=(0, 2))
+        
+        self.lbl_m_suffix = ctk.CTkLabel(self.hours_manual_frame, text="m")
+        self.lbl_m_suffix.grid(row=0, column=3)
+ 
+         # Descripción
         self.lbl_desc = ctk.CTkLabel(self.tab_manual, text="Descripción/Detalle:")
-        self.lbl_desc.grid(row=3, column=0, sticky="e", padx=(0, 10), pady=6)
+        self.lbl_desc.grid(row=4, column=0, sticky="e", padx=(0, 10), pady=6)
         self.ent_desc = ctk.CTkEntry(self.tab_manual, placeholder_text="Describa el trabajo...")
-        self.ent_desc.grid(row=3, column=1, sticky="ew", pady=6)
-
-        # Observaciones Opcionales
+        self.ent_desc.grid(row=4, column=1, sticky="ew", pady=6)
+ 
+         # Observaciones Opcionales
         self.lbl_notes = ctk.CTkLabel(self.tab_manual, text="Observaciones internas (ocultas):")
-        self.lbl_notes.grid(row=4, column=0, sticky="e", padx=(0, 10), pady=6)
+        self.lbl_notes.grid(row=5, column=0, sticky="e", padx=(0, 10), pady=6)
         self.ent_notes = ctk.CTkEntry(self.tab_manual, placeholder_text="Observaciones de control (opcional)...")
-        self.ent_notes.grid(row=4, column=1, sticky="ew", pady=6)
-
-        # Botón Guardar Horas Manual
+        self.ent_notes.grid(row=5, column=1, sticky="ew", pady=6)
+ 
+         # Botón Guardar Horas Manual
         self.btn_save_log = ctk.CTkButton(
             self.tab_manual, 
             text="Registrar Tarea Manualmente", 
@@ -106,7 +145,7 @@ class TimeView(ctk.CTkFrame):
             hover_color="#1A365D",
             font=ctk.CTkFont(weight="bold")
         )
-        self.btn_save_log.grid(row=5, column=0, columnspan=2, pady=(12, 5), sticky="ew")
+        self.btn_save_log.grid(row=6, column=0, columnspan=2, pady=(12, 5), sticky="ew")
 
         # ----------------------------------------------------
         # PESTAÑA: CRONÓMETRO ASÍNCRONO
@@ -123,6 +162,29 @@ class TimeView(ctk.CTkFrame):
         self.ent_timer_desc = ctk.CTkEntry(self.tab_timer, placeholder_text="¿En qué tarea vas a trabajar?")
         self.ent_timer_desc.grid(row=1, column=1, sticky="ew", pady=6)
 
+        # Banner de edición de tarea en cronómetro (oculto por defecto)
+        self.timer_edit_banner_frame = ctk.CTkFrame(self.tab_timer, fg_color="transparent")
+        
+        self.lbl_timer_edit_banner = ctk.CTkLabel(
+            self.timer_edit_banner_frame, 
+            text="", 
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=("#B7791F", "#D69E2E")
+        )
+        self.lbl_timer_edit_banner.pack(side="left", padx=5)
+        
+        self.btn_timer_edit_cancel = ctk.CTkButton(
+            self.timer_edit_banner_frame,
+            text="✕ Cancelar",
+            width=70,
+            height=22,
+            fg_color="#E53E3E",
+            hover_color="#C53030",
+            font=ctk.CTkFont(size=10),
+            command=self.cancel_timer_continuation
+        )
+        self.btn_timer_edit_cancel.pack(side="left", padx=5)
+
         # Display del Reloj Digital
         self.lbl_timer_clock = ctk.CTkLabel(
             self.tab_timer, 
@@ -130,11 +192,11 @@ class TimeView(ctk.CTkFrame):
             font=ctk.CTkFont(size=36, weight="bold"),
             text_color=("#2B6CB0", "#90CDF4")
         )
-        self.lbl_timer_clock.grid(row=2, column=0, columnspan=2, pady=(15, 10))
+        self.lbl_timer_clock.grid(row=3, column=0, columnspan=2, pady=(15, 10))
 
         # Botones de control del cronómetro
         self.timer_btns_frame = ctk.CTkFrame(self.tab_timer, fg_color="transparent")
-        self.timer_btns_frame.grid(row=3, column=0, columnspan=2, pady=5, sticky="ew")
+        self.timer_btns_frame.grid(row=4, column=0, columnspan=2, pady=5, sticky="ew")
         self.timer_btns_frame.grid_columnconfigure((0, 1, 2), weight=1)
 
         self.btn_timer_start = ctk.CTkButton(
@@ -154,7 +216,7 @@ class TimeView(ctk.CTkFrame):
 
         # Panel de Resumen/Confirmación de Cronómetro (Oculto inicialmente)
         self.timer_summary_frame = ctk.CTkFrame(self.tab_timer)
-        self.timer_summary_frame.grid(row=4, column=0, columnspan=2, pady=(15, 5), padx=5, sticky="ew")
+        self.timer_summary_frame.grid(row=5, column=0, columnspan=2, pady=(15, 5), padx=5, sticky="ew")
         self.timer_summary_frame.grid_columnconfigure(1, weight=1)
         self.timer_summary_frame.grid_remove()  # Ocultar
 
@@ -205,7 +267,7 @@ class TimeView(ctk.CTkFrame):
         self.btn_timer_save.grid(row=0, column=0, padx=5, sticky="ew")
 
         self.btn_timer_reset = ctk.CTkButton(
-            self.timer_action_frame, text="Descartar Tarea", command=self.reset_timer, fg_color="gray", hover_color="darkgray"
+            self.timer_action_frame, text="Descartar Tarea", command=lambda: self.reset_timer(confirm=True), fg_color="gray", hover_color="darkgray"
         )
         self.btn_timer_reset.grid(row=0, column=1, padx=5, sticky="ew")
 
@@ -443,12 +505,18 @@ class TimeView(ctk.CTkFrame):
             log_frame.grid(row=idx, column=0, sticky="ew", pady=2, padx=2)
             log_frame.grid_columnconfigure(0, weight=1)
             log_frame.grid_columnconfigure(1, weight=0)
+            log_frame.grid_columnconfigure(2, weight=0)
 
             # Detalle del Log
             billed_status = "Facturado" if log["invoice_id"] is not None else "Pendiente"
             billed_color = "green" if log["invoice_id"] is not None else "#B7791F"
             
-            detail_text = f"Fecha: {log['date']} | Cliente: {log['client_name']}\nHoras: {log['hours']:.2f} h | {log['description']}"
+            total_minutes = round(log["hours"] * 60)
+            h_val = total_minutes // 60
+            m_val = total_minutes % 60
+            time_str = f"{h_val}h {m_val}m" if h_val > 0 else f"{m_val}m"
+
+            detail_text = f"Fecha: {log['date']} | Cliente: {log['client_name']}\nTiempo: {time_str} ({log['hours']:.2f} h) | {log['description']}"
             if log.get("notes"):
                 detail_text += f"\nObservaciones: {log['notes']}"
                 
@@ -459,11 +527,39 @@ class TimeView(ctk.CTkFrame):
             lbl_status = ctk.CTkLabel(log_frame, text=billed_status, text_color=billed_color, font=ctk.CTkFont(size=10, weight="bold"))
             lbl_status.grid(row=0, column=1, sticky="e", padx=10, pady=5)
 
+            # Botones de Acción (solo para tareas pendientes)
+            if log["invoice_id"] is None:
+                actions_frame = ctk.CTkFrame(log_frame, fg_color="transparent")
+                actions_frame.grid(row=0, column=2, padx=(0, 10), pady=5, sticky="e")
+                
+                btn_timer = ctk.CTkButton(
+                    actions_frame, 
+                    text="⏱", 
+                    width=28, 
+                    height=24,
+                    fg_color="#319795",
+                    hover_color="#234E52",
+                    command=lambda l=log: self.continue_in_timer(l)
+                )
+                btn_timer.grid(row=0, column=0, padx=2)
+                
+                btn_edit = ctk.CTkButton(
+                    actions_frame,
+                    text="✏",
+                    width=28,
+                    height=24,
+                    fg_color="#2B6CB0",
+                    hover_color="#1A365D",
+                    command=lambda l=log: self.continue_in_manual(l)
+                )
+                btn_edit.grid(row=0, column=1, padx=2)
+
     def save_time_log_manual(self):
-        """Registra el tiempo manualmente en la base de datos."""
+        """Registra o actualiza el tiempo manualmente en la base de datos."""
         client_name = self.cmb_clients.get()
         date_str = self.ent_date.get().strip()
         hours_str = self.ent_hours.get().strip()
+        minutes_str = self.ent_minutes.get().strip()
         desc = self.ent_desc.get().strip()
         notes = self.ent_notes.get().strip()
 
@@ -477,28 +573,62 @@ class TimeView(ctk.CTkFrame):
             messagebox.showerror("Error", "Cliente no seleccionado correctamente.")
             return
 
-        if not hours_str or not desc:
-            messagebox.showerror("Error de Validación", "Todos los campos de registro de tiempo son obligatorios.")
+        if not desc:
+            messagebox.showerror("Error de Validación", "La descripción de la tarea es obligatoria.")
             return
 
-        try:
-            hours = float(hours_str)
-        except ValueError:
-            messagebox.showerror("Error de Validación", "Las horas deben ser un valor decimal o entero (Ej: 2.5).")
+        h = 0
+        if hours_str:
+            try:
+                h = int(hours_str)
+                if h < 0:
+                    raise ValueError
+            except ValueError:
+                messagebox.showerror("Error de Validación", "Las horas deben ser un número entero mayor o igual a 0.")
+                return
+
+        m = 0
+        if minutes_str:
+            try:
+                m = int(minutes_str)
+                if m < 0:
+                    raise ValueError
+            except ValueError:
+                messagebox.showerror("Error de Validación", "Los minutos deben ser un número entero mayor o igual a 0.")
+                return
+
+        if h == 0 and m == 0:
+            messagebox.showerror("Error de Validación", "Debe especificar un tiempo de trabajo mayor a 0 (horas y/o minutos).")
             return
 
+        hours_decimal = h + (m / 60.0)
+
         try:
-            TimeController.create_log(
-                client_id=client.id,
-                date_str=date_str,
-                hours=hours,
-                description=desc,
-                notes=notes if notes else None
-            )
-            messagebox.showinfo("Tiempo Registrado", "El registro de tiempo se ha guardado correctamente.")
-            self.ent_hours.delete(0, ctk.END)
-            self.ent_desc.delete(0, ctk.END)
-            self.ent_notes.delete(0, ctk.END)
+            if self.manual_current_log_id:
+                TimeController.update_log(
+                    log_id=self.manual_current_log_id,
+                    client_id=client.id,
+                    date_str=date_str,
+                    hours=hours_decimal,
+                    description=desc,
+                    notes=notes if notes else None
+                )
+                messagebox.showinfo("Registro Actualizado", "El registro de tiempo se ha actualizado correctamente.")
+                self.cancel_manual_edit()
+            else:
+                TimeController.create_log(
+                    client_id=client.id,
+                    date_str=date_str,
+                    hours=hours_decimal,
+                    description=desc,
+                    notes=notes if notes else None
+                )
+                messagebox.showinfo("Tiempo Registrado", "El registro de tiempo se ha guardado correctamente.")
+                self.ent_hours.delete(0, ctk.END)
+                self.ent_minutes.delete(0, ctk.END)
+                self.ent_desc.delete(0, ctk.END)
+                self.ent_notes.delete(0, ctk.END)
+            
             self.refresh_logs_list()
         except ValueError as ve:
             messagebox.showerror("Error de Validación", str(ve))
@@ -584,16 +714,19 @@ class TimeView(ctk.CTkFrame):
         self.btn_timer_pause.configure(state="disabled")
         self.btn_timer_stop.configure(state="disabled")
 
-        # Mostrar panel de resumen
+        # Mostrar panel de resumen con redondeo a minutos hacia arriba
+        total_minutes = (self.timer_seconds + 59) // 60
+        h_rounded = total_minutes // 60
+        m_rounded = total_minutes % 60
+        
+        hours_decimal = total_minutes / 60.0
+        
         h = self.timer_seconds // 3600
         m = (self.timer_seconds % 3600) // 60
         s = self.timer_seconds % 60
         
-        # Calcular horas decimales
-        hours_decimal = self.timer_seconds / 3600.0
-        
         # Actualizar labels
-        self.lbl_summary_time.configure(text=f"Tiempo acumulado: {h}h {m}m {s}s")
+        self.lbl_summary_time.configure(text=f"Tiempo real: {h}h {m}m {s}s -> Redondeado: {h_rounded}h {m_rounded}m")
         self.lbl_summary_hours.configure(text=f"Horas decimales a registrar: {hours_decimal:.4f} h")
         
         # Cargar valores iniciales de confirmación
@@ -617,8 +750,9 @@ class TimeView(ctk.CTkFrame):
             messagebox.showerror("Error", "Error al procesar cliente.")
             return
 
-        # Las horas decimales calculadas
-        hours_decimal = self.timer_seconds / 3600.0
+        # Las horas decimales calculadas redondeando hacia arriba a minutos
+        total_minutes = (self.timer_seconds + 59) // 60
+        hours_decimal = total_minutes / 60.0
         
         # Validar si el tiempo es cero
         if self.timer_seconds <= 0:
@@ -626,25 +760,44 @@ class TimeView(ctk.CTkFrame):
             return
 
         try:
-            TimeController.create_log(
-                client_id=client.id,
-                date_str=date_str,
-                hours=hours_decimal,
-                description=desc,
-                notes=notes if notes else None
-            )
-            messagebox.showinfo("Registro Guardado", "La tarea cronometrada se ha guardado exitosamente.")
+            if self.timer_current_log_id:
+                TimeController.update_log(
+                    log_id=self.timer_current_log_id,
+                    client_id=client.id,
+                    date_str=date_str,
+                    hours=hours_decimal,
+                    description=desc,
+                    notes=notes if notes else None
+                )
+                messagebox.showinfo("Registro Actualizado", "La tarea se ha actualizado y guardado exitosamente.")
+            else:
+                TimeController.create_log(
+                    client_id=client.id,
+                    date_str=date_str,
+                    hours=hours_decimal,
+                    description=desc,
+                    notes=notes if notes else None
+                )
+                messagebox.showinfo("Registro Guardado", "La tarea cronometrada se ha guardado exitosamente.")
             
-            # Limpiar e inicializar
-            self.reset_timer()
+            # Limpiar e inicializar sin confirmación redundante
+            self.reset_timer(confirm=False)
             self.refresh_logs_list()
         except ValueError as ve:
             messagebox.showerror("Error de Validación", str(ve))
         except Exception as e:
             messagebox.showerror("Error", f"Ocurrió un error al guardar la tarea del cronómetro: {e}")
 
-    def reset_timer(self):
+    def reset_timer(self, confirm=False):
         """Descarta el cronómetro y restablece los displays a cero."""
+        if confirm:
+            q_text = "¿Está seguro de que desea descartar esta tarea?"
+            if self.timer_current_log_id:
+                q_text = "¿Está seguro de que desea descartar los cambios? La tarea original permanecerá sin modificar."
+            ans = messagebox.askyesno("Confirmar Descarte", q_text)
+            if not ans:
+                return
+
         self.timer_running = False
         self.timer_paused = False
         if self.timer_after_id:
@@ -661,8 +814,10 @@ class TimeView(ctk.CTkFrame):
         self.btn_timer_pause.configure(state="disabled")
         self.btn_timer_stop.configure(state="disabled")
 
-        # Ocultar panel resumen
+        # Ocultar panel resumen y banner de edición
         self.timer_summary_frame.grid_remove()
+        self.timer_current_log_id = None
+        self.timer_edit_banner_frame.grid_remove()
 
     def open_date_picker(self, entry_widget):
         """Abre la ventana modal del calendario y actualiza el widget de entrada con la fecha elegida."""
@@ -674,6 +829,109 @@ class TimeView(ctk.CTkFrame):
             entry_widget.insert(0, date_str)
             
         CTkDatePicker(self, callback=handle_selection, start_date_str=val)
+
+    def continue_in_timer(self, log):
+        """Carga una tarea existente en el cronómetro para continuar sumando tiempo o editarla."""
+        if self.timer_running:
+            ans = messagebox.askyesno(
+                "Cronómetro Activo",
+                "Hay una tarea ejecutándose en el cronómetro. ¿Desea pararla y cargar esta tarea?"
+            )
+            if not ans:
+                return
+            self.stop_timer()
+
+        # Cambiar a la pestaña Cronómetro
+        self.tabview.set("Cronómetro")
+        self.timer_current_log_id = log["id"]
+        
+        # Cargar valores
+        if log["client_name"] in self.cmb_timer_clients.cget("values"):
+            self.cmb_timer_clients.set(log["client_name"])
+        
+        self.ent_timer_desc.configure(state="normal")
+        self.ent_timer_desc.delete(0, ctk.END)
+        self.ent_timer_desc.insert(0, log["description"])
+        
+        # Cargar tiempo transcurrido (en segundos)
+        self.timer_seconds = int(log["hours"] * 3600)
+        
+        # Formatear y mostrar en el display
+        h = self.timer_seconds // 3600
+        m = (self.timer_seconds % 3600) // 60
+        s = self.timer_seconds % 60
+        self.lbl_timer_clock.configure(text=f"{h:02d}:{m:02d}:{s:02d}")
+        
+        # Mostrar banner
+        short_desc = log["description"][:30] + "..." if len(log["description"]) > 30 else log["description"]
+        self.lbl_timer_edit_banner.configure(
+            text=f"✏️ Continuando: {short_desc}"
+        )
+        self.timer_edit_banner_frame.grid(row=2, column=0, columnspan=2, pady=(10, 5), sticky="ew")
+
+    def cancel_timer_continuation(self):
+        """Cancela la continuación de la tarea en el cronómetro y lo restablece."""
+        self.reset_timer(confirm=False)
+
+    def continue_in_manual(self, log):
+        """Carga una tarea existente en el formulario manual para su edición."""
+        self.tabview.set("Registro Manual")
+        
+        self.manual_current_log_id = log["id"]
+        
+        # Cargar valores
+        if log["client_name"] in self.cmb_clients.cget("values"):
+            self.cmb_clients.set(log["client_name"])
+        
+        self.ent_date.delete(0, ctk.END)
+        self.ent_date.insert(0, log["date"])
+        
+        # Split decimal hours into hours and minutes
+        total_minutes = round(log["hours"] * 60)
+        h = total_minutes // 60
+        m = total_minutes % 60
+        
+        self.ent_hours.delete(0, ctk.END)
+        self.ent_hours.insert(0, str(h))
+        
+        self.ent_minutes.delete(0, ctk.END)
+        self.ent_minutes.insert(0, str(m))
+        
+        self.ent_desc.delete(0, ctk.END)
+        self.ent_desc.insert(0, log["description"])
+        
+        self.ent_notes.delete(0, ctk.END)
+        self.ent_notes.insert(0, log["notes"] if log.get("notes") else "")
+        
+        # Mostrar banner
+        self.manual_edit_banner_frame.grid(row=0, column=0, columnspan=2, pady=(10, 5), sticky="ew")
+        
+        # Cambiar texto y color del botón
+        self.btn_save_log.configure(
+            text="Actualizar Tarea Manualmente",
+            fg_color="#D69E2E",
+            hover_color="#B7791F"
+        )
+
+    def cancel_manual_edit(self):
+        """Cancela la edición manual y limpia los campos."""
+        self.manual_current_log_id = None
+        self.manual_edit_banner_frame.grid_remove()
+        
+        # Reset button text and appearance
+        self.btn_save_log.configure(
+            text="Registrar Tarea Manualmente",
+            fg_color="#2B6CB0",
+            hover_color="#1A365D"
+        )
+        
+        # Clear fields
+        self.ent_hours.delete(0, ctk.END)
+        self.ent_minutes.delete(0, ctk.END)
+        self.ent_desc.delete(0, ctk.END)
+        self.ent_notes.delete(0, ctk.END)
+        self.ent_date.delete(0, ctk.END)
+        self.ent_date.insert(0, datetime.now().strftime("%Y-%m-%d"))
 
     # ----------------------------------------------------
     # MÉTODOS DE FACTURACIÓN
