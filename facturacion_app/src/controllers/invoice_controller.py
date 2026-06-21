@@ -55,6 +55,17 @@ class InvoiceController:
         if not client:
             raise ValueError("El cliente especificado no existe.")
 
+        # Validar si el cliente está completo
+        is_client_complete = bool(
+            client.name and client.name.strip() and
+            client.nif and client.nif.strip() and not client.nif.startswith("PENDIENTE-") and
+            client.email and client.email.strip() and
+            client.address and client.address.strip() and
+            client.hourly_rate > 0
+        )
+        if not is_client_complete:
+            raise ValueError("No se puede generar la factura final para un cliente con datos incompletos.")
+
         # Validar fechas
         try:
             datetime.strptime(start_date_str, "%Y-%m-%d")

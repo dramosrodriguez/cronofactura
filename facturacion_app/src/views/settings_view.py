@@ -137,9 +137,36 @@ class SettingsView(ctk.CTkFrame):
         )
         self.btn_select_path.grid(row=1, column=2, padx=(10, 15), pady=10)
 
+        # --- SECCIÓN CARPETA DESTINO DE INFORMES ---
+        self.reports_path_frame = ctk.CTkFrame(self.scrollable_container)
+        self.reports_path_frame.grid(row=4, column=0, sticky="ew", pady=(0, 20), padx=5)
+        self.reports_path_frame.grid_columnconfigure(1, weight=1)
+        self.reports_path_frame.grid_columnconfigure(2, weight=0)
+
+        self.reports_path_title = ctk.CTkLabel(
+            self.reports_path_frame, 
+            text="Carpeta de Guardado de Informes (PDF)", 
+            font=ctk.CTkFont(size=16, weight="bold")
+        )
+        self.reports_path_title.grid(row=0, column=0, columnspan=3, sticky="w", padx=15, pady=(15, 10))
+
+        self.lbl_ruta_informes = ctk.CTkLabel(self.reports_path_frame, text="Ruta Destino:")
+        self.lbl_ruta_informes.grid(row=1, column=0, sticky="e", padx=(15, 10), pady=10)
+
+        self.ent_ruta_informes = ctk.CTkEntry(self.reports_path_frame, placeholder_text="Por defecto (informes/)")
+        self.ent_ruta_informes.grid(row=1, column=1, sticky="ew", pady=10)
+
+        self.btn_select_reports_path = ctk.CTkButton(
+            self.reports_path_frame, 
+            text="Examinar...", 
+            width=80, 
+            command=self.select_reports_output_directory
+        )
+        self.btn_select_reports_path.grid(row=1, column=2, padx=(10, 15), pady=10)
+
         # --- SECCIÓN ACTUALIZACIONES DE LA APLICACIÓN ---
         self.updates_frame = ctk.CTkFrame(self.scrollable_container)
-        self.updates_frame.grid(row=4, column=0, sticky="ew", pady=(0, 20), padx=5)
+        self.updates_frame.grid(row=5, column=0, sticky="ew", pady=(0, 20), padx=5)
         self.updates_frame.grid_columnconfigure(0, weight=1)
 
         self.updates_title = ctk.CTkLabel(
@@ -166,10 +193,10 @@ class SettingsView(ctk.CTkFrame):
             fg_color="#2B6CB0",
             hover_color="#1A365D"
         )
-        self.btn_guardar.grid(row=5, column=0, pady=(10, 20), padx=5, sticky="ew")
+        self.btn_guardar.grid(row=6, column=0, pady=(10, 20), padx=5, sticky="ew")
 
         self.lbl_status = ctk.CTkLabel(self.scrollable_container, text="", font=ctk.CTkFont(size=12, slant="italic"))
-        self.lbl_status.grid(row=6, column=0, pady=(0, 10))
+        self.lbl_status.grid(row=7, column=0, pady=(0, 10))
 
         # Cargar valores iniciales
         self.load_settings()
@@ -209,6 +236,9 @@ class SettingsView(ctk.CTkFrame):
             self.ent_ruta_facturas.delete(0, ctk.END)
             self.ent_ruta_facturas.insert(0, config.get("ruta_facturas", ""))
             
+            self.ent_ruta_informes.delete(0, ctk.END)
+            self.ent_ruta_informes.insert(0, config.get("ruta_informes", ""))
+            
             # Cargar estado de buscar_actualizaciones
             buscar_actualizaciones = config.get("buscar_actualizaciones", True)
             if buscar_actualizaciones:
@@ -231,6 +261,7 @@ class SettingsView(ctk.CTkFrame):
         iva_str = self.ent_iva.get().strip()
         irpf_str = self.ent_irpf.get().strip()
         ruta_facturas = self.ent_ruta_facturas.get().strip()
+        ruta_informes = self.ent_ruta_informes.get().strip()
 
         # Validación en Frontend
         if not nombre or not nif or not direccion or not email or not cuenta_bancaria:
@@ -242,7 +273,15 @@ class SettingsView(ctk.CTkFrame):
             try:
                 os.makedirs(ruta_facturas, exist_ok=True)
             except Exception:
-                messagebox.showerror("Error de Validación", "La ruta de guardado especificada no es válida o no se puede crear.")
+                messagebox.showerror("Error de Validación", "La ruta de guardado de facturas especificada no es válida o no se puede crear.")
+                return
+
+        # Si se especifica una ruta de informes, verificar si se puede crear/acceder
+        if ruta_informes:
+            try:
+                os.makedirs(ruta_informes, exist_ok=True)
+            except Exception:
+                messagebox.showerror("Error de Validación", "La ruta de guardado de informes especificada no es válida o no se puede crear.")
                 return
 
         try:
@@ -277,6 +316,7 @@ class SettingsView(ctk.CTkFrame):
             "irpf_porcentaje": irpf_val
         }
         config_data["ruta_facturas"] = ruta_facturas
+        config_data["ruta_informes"] = ruta_informes
         config_data["buscar_actualizaciones"] = buscar_actualizaciones
 
         # Asegurarse de que el directorio del archivo settings.json exista
@@ -327,3 +367,18 @@ class SettingsView(ctk.CTkFrame):
         if directory:
             self.ent_ruta_facturas.delete(0, ctk.END)
             self.ent_ruta_facturas.insert(0, os.path.normpath(directory))
+
+    def select_reports_output_directory(self):
+        """Abre un diálogo de selección de directorio para informes y actualiza la entrada."""
+        initial_dir = self.ent_ruta_informes.get().strip()
+        if not initial_dir or not os.path.exists(initial_dir):
+            initial_dir = os.path.expanduser("~")
+            
+        directory = filedialog.askdirectory(
+            parent=self,
+            title="Seleccionar Carpeta para Informes PDF",
+            initialdir=initial_dir
+        )
+        if directory:
+            self.ent_ruta_informes.delete(0, ctk.END)
+            self.ent_ruta_informes.insert(0, os.path.normpath(directory))

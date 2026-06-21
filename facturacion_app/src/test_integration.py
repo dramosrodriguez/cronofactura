@@ -178,6 +178,27 @@ def run_tests():
     print(f"Exportaciones completadas con éxito:")
     print(f" - Excel Facturas: {excel_path}")
     print(f" - CSV Registro de Tiempos: {csv_path}")
+
+    # Validar generación del informe de avances PDF
+    print("\n[Opcional] Validando generación de informe de avances (PDF)...")
+    from src.utils.pdf_generator import ejecutar_generacion_informe_pdf
+    
+    report_logs = TimeController.list_logs()
+    # filtrar solo para nuestro cliente de prueba
+    client_logs = [log for log in report_logs if log["client_name"] == client.name]
+    
+    report_pdf_path = ejecutar_generacion_informe_pdf(client, client_logs, "2026-06-01", "2026-06-30")
+    print(f"Informe PDF generado en: {report_pdf_path}")
+    if not os.path.exists(report_pdf_path):
+        raise ValueError("Error: el archivo PDF de informe de avances no fue creado.")
+    
+    # Limpiar informe
+    try:
+        os.remove(report_pdf_path)
+        # eliminar subcarpeta del cliente si queda vacía
+        os.rmdir(os.path.dirname(report_pdf_path))
+    except Exception:
+        pass
     
     print("\n--- INICIANDO PRUEBAS DE ELIMINACIÓN ---")
     
@@ -277,6 +298,50 @@ def run_tests():
         raise ValueError("Error: se permitió la actualización de una tarea ya facturada.")
     except ValueError as e:
         print(f"Excepción controlada correctamente al actualizar tarea facturada: {e}")
+
+    # 9. Probando cliente incompleto y bloqueo de facturación final
+    print("\n[9] Probando cliente incompleto y bloqueo de facturación final...")
+    try:
+        incomplete_client = ClientController.create_client(
+            name="Cliente Incompleto",
+            nif="",           # Debería generar un NIF PENDIENTE-xxx
+            hourly_rate=0.0,
+            email="",
+            address=""
+        )
+        print(f"Cliente incompleto creado con éxito: {incomplete_client.name} (NIF auto: {incomplete_client.nif})")
+        if not incomplete_client.nif.startswith("PENDIENTE-"):
+            raise ValueError("Error: El NIF temporal no se generó con el formato correcto.")
+    except Exception as e:
+        raise ValueError(f"Error: no se pudo crear un cliente incompleto: {e}")
+
+    # Intentar generar factura para el cliente incompleto (debe lanzar ValueError)
+    try:
+        incomplete_log = TimeController.create_log(
+            client_id=incomplete_client.id,
+            date_str="2026-06-15",
+            hours=2.0,
+            description="Trabajo preliminar"
+        )
+        
+        InvoiceController.create_invoice(
+            invoice_number=f"F-INC-{int(os.getpid())}",
+            client_id=incomplete_client.id,
+            start_date_str="2026-06-01",
+            end_date_str="2026-06-30",
+            issue_date_str="2026-06-15",
+            due_date_str="2026-07-15",
+            vat_rate=21.0,
+            irpf_rate=15.0,
+            billing_type="horas",
+            selected_log_ids=[incomplete_log.id]
+        )
+        raise ValueError("Error: se permitió la creación de una factura para un cliente incompleto.")
+    except ValueError as e:
+        if "No se puede generar la factura final para un cliente con datos incompletos" in str(e):
+            print(f"Excepción controlada correctamente al facturar cliente incompleto: {e}")
+        else:
+            raise e
 
     print("\n--- ¡TODAS LAS PRUEBAS BACKEND Y DE ELIMINACIÓN PASARON CON ÉXITO! ---")
     

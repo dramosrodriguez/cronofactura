@@ -1170,18 +1170,60 @@ class TimeView(ctk.CTkFrame):
         )
         self.btn_date_due.grid(row=0, column=1)
         # Botón Final
-        self.btn_submit_invoice = ctk.CTkButton(
-            self.preview_container, 
-            text="Emitir Factura y Crear PDF", 
-            command=lambda: self.submit_invoice(client.id),
-            fg_color="#48BB78",
-            hover_color="#38A169",
-            font=ctk.CTkFont(weight="bold")
+        # Verificar si el cliente está completo (nombre, NIF real, email, dirección, tarifa > 0)
+        is_client_complete = bool(
+            client.name and client.name.strip() and
+            client.nif and client.nif.strip() and not client.nif.startswith("PENDIENTE-") and
+            client.email and client.email.strip() and
+            client.address and client.address.strip() and
+            client.hourly_rate > 0
         )
+
+        # Botón Final
+        if not is_client_complete:
+            self.btn_submit_invoice = ctk.CTkButton(
+                self.preview_container, 
+                text="Emisión Deshabilitada (Datos de Cliente Incompletos)", 
+                state="disabled",
+                fg_color="gray",
+                hover_color="gray",
+                font=ctk.CTkFont(weight="bold")
+            )
+        else:
+            self.btn_submit_invoice = ctk.CTkButton(
+                self.preview_container, 
+                text="Emitir Factura y Crear PDF", 
+                command=lambda: self.submit_invoice(client.id),
+                fg_color="#48BB78",
+                hover_color="#38A169",
+                font=ctk.CTkFont(weight="bold")
+            )
         self.btn_submit_invoice.grid(row=15, column=0, columnspan=2, pady=(15, 10), sticky="ew")
+
+        # Mostrar aviso si el cliente no está completo
+        if not is_client_complete:
+            self.lbl_billing_warning = ctk.CTkLabel(
+                self.preview_container,
+                text="⚠️ Complete el NIF, Email, Dirección y Tarifa del cliente para emitir la factura final.",
+                text_color=("#E53E3E", "#FC8181"),
+                font=ctk.CTkFont(size=11, weight="bold")
+            )
+            self.lbl_billing_warning.grid(row=16, column=0, columnspan=2, pady=(0, 10), sticky="ew", padx=10)
 
     def submit_invoice(self, client_id: int):
         """Lanza la facturación real y generación de archivos."""
+        client = ClientController.get_client(client_id)
+        is_client_complete = bool(
+            client.name and client.name.strip() and
+            client.nif and client.nif.strip() and not client.nif.startswith("PENDIENTE-") and
+            client.email and client.email.strip() and
+            client.address and client.address.strip() and
+            client.hourly_rate > 0
+        )
+        if not is_client_complete:
+            messagebox.showerror("Error de Facturación", "No se puede emitir la factura final porque el cliente tiene datos incompletos.")
+            return
+
         invoice_number = self.ent_bill_number.get().strip()
         iva_str = self.ent_bill_iva.get().strip()
         irpf_str = self.ent_bill_irpf.get().strip()

@@ -1,0 +1,160 @@
+@page {
+    size: a4 landscape;
+    margin-top: 1.5cm;
+    margin-bottom: 2cm;
+    margin-left: 2cm;
+    margin-right: 2cm;
+    @frame footer {
+        -pdf-frame-content: footer_content;
+        bottom: 1cm;
+        left: 2cm;
+        right: 2cm;
+        height: 1cm;
+    }
+}
+
+body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: #2D3748;
+    font-size: 10pt;
+    line-height: 1.5;
+}
+
+h1 {
+    font-size: 20pt;
+    color: #1A365D;
+    margin: 0;
+    font-weight: bold;
+}
+
+.report-header-table {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.report-header-table td {
+    vertical-align: top;
+}
+
+.report-summary-box {
+    background-color: #F7FAFC;
+    border: 1px solid #E2E8F0;
+    padding: 12px;
+    border-radius: 6px;
+    width: 100%;
+}
+
+.report-summary-box td {
+    padding: 3px 0;
+}
+
+.summary-label {
+    font-weight: bold;
+    color: #4A5568;
+    width: 120px;
+}
+
+.summary-value {
+    color: #2D3748;
+}
+
+/* Datos Emisor y Receptor */
+.parties-table {
+    width: 100%;
+    margin-bottom: 25px;
+}
+
+.parties-table td {
+    width: 50%;
+    vertical-align: top;
+}
+
+.party-title {
+    font-size: 11pt;
+    font-weight: bold;
+    color: #319795; /* Color verde azulado / teal distintivo */
+    border-bottom: 2px solid #E2E8F0;
+    padding-bottom: 4px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.party-info {
+    font-size: 9.5pt;
+    line-height: 1.4;
+    color: #4A5568;
+}
+
+/* Tabla de Conceptos (Items) */
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 25px;
+}
+
+.items-table th {
+    background-color: #319795; /* Encabezado Teal */
+    color: #FFFFFF;
+    font-weight: bold;
+    text-align: left;
+    padding: 8px 10px;
+    font-size: 9.5pt;
+    border: 1px solid #319795;
+}
+
+.items-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #E2E8F0;
+    font-size: 9pt;
+    color: #2D3748;
+    vertical-align: top;
+}
+
+.items-table tr.even-row td {
+    background-color: #F8FAFC;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.intro-text {
+    font-size: 10pt;
+    color: #4A5568;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+.totals-summary-card {
+    background-color: #E6FFFA;
+    border: 1px solid #B2F5EA;
+    padding: 12px 15px;
+    border-radius: 6px;
+    margin-top: 15px;
+    margin-bottom: 25px;
+}
+
+.totals-summary-title {
+    font-weight: bold;
+    color: #234E52;
+    font-size: 11pt;
+    margin-bottom: 5px;
+}
+
+.totals-summary-text {
+    font-size: 9.5pt;
+    color: #2C7A7B;
+}
+
+/* Footer de página */
+#footer_content {
+    font-size: 8pt;
+    color: #A0AEC0;
+    text-align: center;
+    border-top: 1px solid #E2E8F0;
+    padding-top: 5px;
+}

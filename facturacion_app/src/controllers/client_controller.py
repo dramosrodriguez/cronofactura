@@ -12,8 +12,12 @@ class ClientController:
         email = email.strip()
         address = address.strip()
 
-        if not name or not nif or not email or not address:
-            raise ValueError("Todos los campos del cliente son obligatorios.")
+        if not name:
+            raise ValueError("El nombre del cliente es obligatorio.")
+
+        if not nif:
+            import time
+            nif = f"PENDIENTE-{int(time.time() * 1000)}"
 
         if hourly_rate < 0:
             raise ValueError("La tarifa horaria no puede ser negativa.")
@@ -37,8 +41,16 @@ class ClientController:
         if not client_id:
             raise ValueError("ID de cliente no especificado.")
 
-        if not name or not nif or not email or not address:
-            raise ValueError("Todos los campos del cliente son obligatorios.")
+        if not name:
+            raise ValueError("El nombre del cliente es obligatorio.")
+
+        if not nif:
+            client_prev = Client.get_by_id(client_id)
+            if client_prev and client_prev.nif.startswith("PENDIENTE-"):
+                nif = client_prev.nif
+            else:
+                import time
+                nif = f"PENDIENTE-{int(time.time() * 1000)}"
 
         if hourly_rate < 0:
             raise ValueError("La tarifa horaria no puede ser negativa.")

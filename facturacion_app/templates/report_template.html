@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Informe de Avances - {{ client.name }}</title>
+    <style>
+        {{ style_content | safe }}
+    </style>
+</head>
+<body>
+
+    <!-- CABECERA -->
+    <table class="report-header-table">
+        <tr>
+            <td>
+                <h1>INFORME DE AVANCES</h1>
+                <p style="color: #4A5568; margin-top: 5px;">Registro de Actividad y Tareas - {{ client.name }}</p>
+            </td>
+            <td align="right" style="width: 280px;">
+                <div class="report-summary-box">
+                    <table>
+                        <tr>
+                            <td class="summary-label">Periodo:</td>
+                            <td class="summary-value"><strong>{{ start_date }}</strong> al <strong>{{ end_date }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="summary-label">Total Horas:</td>
+                            <td class="summary-value">{{ time_summary }} ({{ "%.2f"|format(total_hours) }} h)</td>
+                        </tr>
+                        <tr>
+                            <td class="summary-label">Nº de Tareas:</td>
+                            <td class="summary-value">{{ logs|length }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- TEXTO INTRODUCTORIO -->
+    <div class="intro-text">
+        Estimado/a cliente, a continuación se presenta el desglose detallado del trabajo realizado, 
+        las tareas completadas y las observaciones correspondientes en el periodo que comprende 
+        desde el <strong>{{ start_date }}</strong> hasta el <strong>{{ end_date }}</strong>.
+    </div>
+
+    <!-- TABLA DE TAREAS -->
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th style="width: 10%; text-align: center;">Fecha</th>
+                <th style="width: 40%;">Descripción del Trabajo Realizado</th>
+                <th style="width: 40%;">Observaciones / Notas</th>
+                <th style="width: 10%; text-align: center;">Tiempo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr class="{{ 'even-row' if loop.index0 % 2 == 0 else '' }}">
+                <td class="text-center">{{ log.date }}</td>
+                <td>{{ log.description }}</td>
+                <td>{{ log.notes if log.notes else '-' }}</td>
+                <td class="text-center">{{ "%.2f"|format(log.hours) }} h</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- RESUMEN DE CIERRE -->
+    <div class="totals-summary-card">
+        <div class="totals-summary-title">Resumen de Actividad</div>
+        <div class="totals-summary-text">
+            Durante este tramo de días se ha registrado un tiempo total acumulado de <strong>{{ time_summary }}</strong> 
+            ({{ "%.2f"|format(total_hours) }} horas) dedicado al desarrollo y soporte de sus proyectos. 
+            Si tiene alguna duda o necesita aclaraciones adicionales sobre alguna de las tareas enumeradas, 
+            por favor no dude en ponerse en contacto.
+        </div>
+    </div>
+
+    <!-- FOOTER DE PÁGINA (ESTÁTICO DE XHTML2PDF) -->
+    <div id="footer_content">
+        Informe generado automáticamente por el Sistema Local de Facturación y Gestión de Tiempos.<br>
+        Página <pdf:pagenumber/> de <pdf:pagecount/>
+    </div>
+
+</body>
+</html>

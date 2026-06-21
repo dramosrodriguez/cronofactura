@@ -60,7 +60,7 @@ class AplicacionFacturacion(ctk.CTk):
         # Logo / Título de la App
         self.logo_label = ctk.CTkLabel(
             self.sidebar_frame, 
-            text="AutónomoOS", 
+            text="CronoFactura", 
             font=ctk.CTkFont(size=20, weight="bold"),
             text_color=("#1A365D", "#90CDF4")
         )

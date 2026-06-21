@@ -138,8 +138,23 @@ class ClientsView(ctk.CTkFrame):
         for idx, client in enumerate(clients):
             row_idx = idx + 1
             
-            # Formatear la fila
-            bg_color = ("#F7FAFC", "#2D3748") if idx % 2 == 0 else ("#EDF2F7", "#1A202C")
+            # Verificar si el cliente tiene todos los datos necesarios para facturar
+            is_complete = bool(
+                client.name and client.name.strip() and
+                client.nif and client.nif.strip() and not client.nif.startswith("PENDIENTE-") and
+                client.email and client.email.strip() and
+                client.address and client.address.strip() and
+                client.hourly_rate > 0
+            )
+
+            # Formatear la fila (amarillo si está incompleto)
+            if not is_complete:
+                bg_color = ("#FEFCBF", "#744210")
+                text_color = ("#744210", "white")
+            else:
+                bg_color = ("#F7FAFC", "#2D3748") if idx % 2 == 0 else ("#EDF2F7", "#1A202C")
+                text_color = None
+
             row_frame = ctk.CTkFrame(self.scroll_frame, fg_color=bg_color, corner_radius=4)
             row_frame.grid(row=row_idx, column=0, columnspan=4, sticky="ew", pady=2, padx=2)
             row_frame.grid_columnconfigure(0, weight=2)
@@ -147,14 +162,16 @@ class ClientsView(ctk.CTkFrame):
             row_frame.grid_columnconfigure(2, weight=0)
             row_frame.grid_columnconfigure(3, weight=0)
 
-            # Col 0: Nombre y NIF
-            name_text = f"{client.name}\nNIF: {client.nif}"
-            lbl_name = ctk.CTkLabel(row_frame, text=name_text, justify="left", font=ctk.CTkFont(size=12))
+            # Col 0: Nombre y NIF (limpiando placeholder)
+            nif_display = "[Pendiente]" if client.nif.startswith("PENDIENTE-") or not client.nif else client.nif
+            name_text = f"{client.name}\nNIF: {nif_display}"
+            lbl_name = ctk.CTkLabel(row_frame, text=name_text, justify="left", font=ctk.CTkFont(size=12), text_color=text_color)
             lbl_name.grid(row=0, column=0, sticky="w", padx=10, pady=5)
 
-            # Col 1: Tarifa e Email
-            info_text = f"Tarifa: {client.hourly_rate:.2f} €/h\nEmail: {client.email}"
-            lbl_info = ctk.CTkLabel(row_frame, text=info_text, justify="left", font=ctk.CTkFont(size=12))
+            # Col 1: Tarifa e Email (mostrando Pendiente si está vacío)
+            email_display = client.email if client.email else "[Pendiente]"
+            info_text = f"Tarifa: {client.hourly_rate:.2f} €/h\nEmail: {email_display}"
+            lbl_info = ctk.CTkLabel(row_frame, text=info_text, justify="left", font=ctk.CTkFont(size=12), text_color=text_color)
             lbl_info.grid(row=0, column=1, sticky="w", padx=10, pady=5)
 
             # Col 2: Botón Editar
@@ -189,19 +206,30 @@ class ClientsView(ctk.CTkFrame):
         email = self.ent_email.get().strip()
         address = self.ent_address.get().strip()
 
-        # Validación básica de campos vacíos
-        if not name or not nif or not rate_str or not email or not address:
-            messagebox.showerror("Error de Validación", "Todos los campos son obligatorios.")
+        # Nombre es el único campo estrictamente obligatorio para crear el registro
+        if not name:
+            messagebox.showerror("Error de Validación", "El nombre del cliente es obligatorio.")
             return
 
-        # Validar tarifa numérica
-        try:
-            rate = float(rate_str)
-            if rate < 0:
-                raise ValueError
-        except ValueError:
-            messagebox.showerror("Error de Validación", "La tarifa horaria debe ser un número positivo.")
-            return
+        # Advertencia de campos vacíos
+        if not nif or not rate_str or not email or not address:
+            confirm = messagebox.askyesno(
+                "Datos Incompletos",
+                "Hay campos vacíos (NIF, tarifa, email o dirección). ¿Desea continuar registrando el cliente de todas formas?"
+            )
+            if not confirm:
+                return
+
+        # Validar tarifa numérica si se proporciona
+        rate = 0.0
+        if rate_str:
+            try:
+                rate = float(rate_str)
+                if rate < 0:
+                    raise ValueError
+            except ValueError:
+                messagebox.showerror("Error de Validación", "La tarifa horaria debe ser un número positivo.")
+                return
 
         try:
             if self.editing_client_id:
@@ -244,7 +272,8 @@ class ClientsView(ctk.CTkFrame):
         self.ent_name.insert(0, client.name)
 
         self.ent_nif.delete(0, ctk.END)
-        self.ent_nif.insert(0, client.nif)
+        if not client.nif.startswith("PENDIENTE-"):
+            self.ent_nif.insert(0, client.nif)
 
         self.ent_rate.delete(0, ctk.END)
         self.ent_rate.insert(0, str(client.hourly_rate))

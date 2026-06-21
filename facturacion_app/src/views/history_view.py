@@ -117,10 +117,33 @@ class HistoryView(ctk.CTkFrame):
         # Pestaña Tareas Layout
         self.tab_tasks = self.tabview.tab("Tareas")
         self.tab_tasks.grid_columnconfigure(0, weight=1)
-        self.tab_tasks.grid_rowconfigure(0, weight=1)
+        self.tab_tasks.grid_rowconfigure(1, weight=1)
+
+        # Barra de herramientas superior de tareas
+        self.tasks_toolbar = ctk.CTkFrame(self.tab_tasks, fg_color="transparent")
+        self.tasks_toolbar.grid(row=0, column=0, sticky="ew", padx=5, pady=(5, 10))
+        self.tasks_toolbar.grid_columnconfigure(0, weight=1)
+        self.tasks_toolbar.grid_columnconfigure(1, weight=0)
+
+        self.lbl_tasks_summary = ctk.CTkLabel(
+            self.tasks_toolbar,
+            text="Seleccione un cliente y rango de fechas para exportar el informe.",
+            font=ctk.CTkFont(size=12, slant="italic")
+        )
+        self.lbl_tasks_summary.grid(row=0, column=0, sticky="w")
+
+        self.btn_export_report = ctk.CTkButton(
+            self.tasks_toolbar,
+            text="📄 Exportar Informe (PDF)",
+            command=self.export_progress_report,
+            fg_color="#319795",
+            hover_color="#234E52",
+            font=ctk.CTkFont(weight="bold")
+        )
+        self.btn_export_report.grid(row=0, column=1, sticky="e")
 
         self.tasks_scroll = ctk.CTkScrollableFrame(self.tab_tasks)
-        self.tasks_scroll.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.tasks_scroll.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
         self.tasks_scroll.grid_columnconfigure(0, weight=1)
 
         self.refresh()
@@ -316,6 +339,23 @@ class HistoryView(ctk.CTkFrame):
 
             filtered_logs.append(log)
 
+        total_hours = sum(log["hours"] for log in filtered_logs)
+        total_minutes = round(total_hours * 60)
+        h_val = total_minutes // 60
+        m_val = total_minutes % 60
+        time_str = f"{h_val}h {m_val}m" if h_val > 0 else f"{m_val}m"
+        
+        if client_filter != "Todos los clientes":
+            self.lbl_tasks_summary.configure(
+                text=f"Cliente: {client_filter} | {len(filtered_logs)} tareas | Total: {time_str} ({total_hours:.2f} h)",
+                text_color=("#1A365D", "#90CDF4")
+            )
+        else:
+            self.lbl_tasks_summary.configure(
+                text=f"Todos los clientes | {len(filtered_logs)} tareas | Total: {time_str} ({total_hours:.2f} h)",
+                text_color=("#4A5568", "#A0AEC0")
+            )
+
         if not filtered_logs:
             lbl_empty = ctk.CTkLabel(
                 self.tasks_scroll,
@@ -475,3 +515,91 @@ class HistoryView(ctk.CTkFrame):
         main_window = self.winfo_toplevel()
         main_window.select_view("time")
         main_window.views["time"].continue_in_manual(log)
+
+    def export_progress_report(self):
+        """Exporta un informe de avances en PDF para el cliente y periodo seleccionados."""
+        client_filter = self.cmb_filter_client.get()
+        if client_filter == "Todos los clientes":
+            messagebox.showwarning(
+                "Cliente Requerido",
+                "Por favor, seleccione un cliente específico en el filtro superior para exportar su informe de avances."
+            )
+            return
+
+        start_date_str = self.ent_start_date.get().strip()
+        end_date_str = self.ent_end_date.get().strip()
+        if not start_date_str or not end_date_str:
+            messagebox.showwarning(
+                "Rango de Fechas Requerido",
+                "Por favor, especifique una fecha de inicio ('Desde') y una fecha de fin ('Hasta') en el filtro superior para exportar el informe."
+            )
+            return
+
+        # Validar fechas
+        try:
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+            end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+        except ValueError:
+            messagebox.showerror(
+                "Error de Fecha",
+                "El formato de las fechas de inicio y fin debe ser YYYY-MM-DD (Ej. 2026-06-14)."
+            )
+            return
+
+        if start_date > end_date:
+            messagebox.showerror(
+                "Rango Inválido",
+                "La fecha de inicio no puede ser posterior a la fecha de fin."
+            )
+            return
+
+        # Obtener el objeto Cliente
+        client = self.clients_map.get(client_filter)
+        if not client:
+            messagebox.showerror(
+                "Cliente no Encontrado",
+                f"No se pudieron cargar los datos del cliente: {client_filter}."
+            )
+            return
+
+        # Filtrar tareas del cliente en el rango seleccionado
+        report_logs = []
+        for log in self.all_logs:
+            if log["client_name"] != client_filter:
+                continue
+            try:
+                log_date = datetime.strptime(log["date"], "%Y-%m-%d")
+                if start_date <= log_date <= end_date:
+                    report_logs.append(log)
+            except ValueError:
+                continue
+
+        if not report_logs:
+            messagebox.showinfo(
+                "Sin Tareas",
+                f"No se encontraron tareas registradas para el cliente {client_filter} en el periodo especificado ({start_date_str} a {end_date_str})."
+            )
+            return
+
+        # Iniciar generación del PDF
+        try:
+            from src.utils.pdf_generator import ejecutar_generacion_informe_pdf
+            
+            # Ordenar tareas por fecha ascendente para el informe
+            report_logs_sorted = sorted(report_logs, key=lambda x: x["date"])
+            
+            pdf_path = ejecutar_generacion_informe_pdf(client, report_logs_sorted, start_date_str, end_date_str)
+            
+            # Confirmación de apertura
+            confirm = messagebox.askyesno(
+                "Informe Exportado con Éxito",
+                f"El informe de avances se ha guardado en:\n{pdf_path}\n\n¿Desea abrir el archivo PDF ahora?"
+            )
+            if confirm:
+                self.open_pdf(pdf_path)
+                
+        except Exception as e:
+            messagebox.showerror(
+                "Error al Generar Informe",
+                f"Ocurrió un error al generar el PDF del informe:\n{str(e)}"
+            )

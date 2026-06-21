@@ -37,6 +37,9 @@ facturas_emitidas/*
 # Pero mantenemos la carpeta en git usando el archivo .gitkeep
 !facturas_emitidas/.gitkeep
 
+informes/*
+!informes/.gitkeep
+
 # === IDEs, Editores y Sistema ===
 .vscode/
 .idea/
